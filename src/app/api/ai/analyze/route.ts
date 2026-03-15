@@ -85,6 +85,11 @@ export async function POST(request: Request) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("AI analyze error:", message);
 
+    const providerMatch = message.match(/Provider unavailable \((\w+)\)/);
+    if (providerMatch) {
+      console.error("[ANALYZE] provider_failed code=provider_unavailable provider=" + providerMatch[1]);
+    }
+
     if (message.includes("No AI provider available") || message.includes("is not set")) {
       return NextResponse.json(
         { success: false, error: "provider_unavailable" },

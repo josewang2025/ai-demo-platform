@@ -149,8 +149,14 @@ export async function routeAndCall(
   } = options;
 
   const available = getAvailableProviders();
+  console.log("[ROUTER] qwen available:", !!process.env.DASHSCOPE_API_KEY);
+
   const preferred = resolveProvider(provider, taskHint, outputLanguage);
   const chosen = fallbackProvider(preferred, available);
+
+  if (provider === "auto") {
+    console.log("[ROUTER] auto mode: preferred=", preferred, "chosen=", chosen ?? "none", "fallbackOrder=", FALLBACK_ORDER);
+  }
 
   console.info("AI provider selected:", chosen ?? "none");
   console.info("Task hint:", taskHint);
@@ -159,6 +165,10 @@ export async function routeAndCall(
     throw new Error(
       "No AI provider available. Add at least one of OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, DASHSCOPE_API_KEY, or DEEPSEEK_API_KEY to .env.local or Vercel Environment Variables."
     );
+  }
+
+  if (chosen === "qwen") {
+    console.log("[ROUTER] selected provider: qwen");
   }
 
   const system = appendLanguageInstruction(systemContent, outputLanguage);
@@ -189,5 +199,5 @@ export async function routeAndCall(
     if (reply !== null) return { reply, provider: "deepseek" };
   }
 
-  throw new Error("Provider unavailable. Check your API keys and try again.");
+  throw new Error(`Provider unavailable (${chosen}). Check your API keys and try again.`);
 }

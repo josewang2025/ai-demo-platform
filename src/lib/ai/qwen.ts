@@ -18,8 +18,12 @@ export type QwenOptions = {
 };
 
 function getQwenClient(): OpenAI | null {
+  console.log("[QWEN] key exists:", !!process.env.DASHSCOPE_API_KEY);
   const apiKey = getOptionalEnv("DASHSCOPE_API_KEY");
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.warn("[QWEN] DASHSCOPE_API_KEY missing");
+    return null;
+  }
   return new OpenAI({
     apiKey,
     baseURL: DASHSCOPE_BASE_URL,
@@ -41,6 +45,9 @@ export async function callQwen(options: QwenOptions): Promise<string | null> {
     model = DEFAULT_MODEL,
   } = options;
 
+  console.log("[QWEN] model:", model);
+  console.log("[QWEN] request start");
+
   try {
     const completion = await client.chat.completions.create({
       model,
@@ -53,7 +60,10 @@ export async function callQwen(options: QwenOptions): Promise<string | null> {
 
     const text = completion.choices[0]?.message?.content?.trim();
     return text || "I couldn't generate a response. Please try again.";
-  } catch {
+  } catch (error) {
+    const safeMessage = error instanceof Error ? error.message : String(error);
+    const status = error && typeof (error as { status?: number }).status === "number" ? (error as { status: number }).status : undefined;
+    console.error("[QWEN] provider error:", safeMessage, status !== undefined ? `status=${status}` : "");
     return null;
   }
 }
