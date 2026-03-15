@@ -4,7 +4,7 @@ import { useRef, useState, useMemo, useCallback } from "react";
 import Papa from "papaparse";
 import { SAMPLE_ORDERS, type OrderRow } from "@/components/ecommerce/sampleOrders";
 import { computeDashboard, buildDatasetSummary } from "@/components/ecommerce/dashboardUtils";
-import { MetricCard } from "@/components/ui";
+import { MetricCard, RevenueTrendChart, HorizontalBarChart } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
 import { getProviderUnavailableErrorKey } from "@/lib/providerError";
@@ -63,9 +63,13 @@ type ChatMessage = { id: number | string; role: "user" | "assistant"; content: s
 export function AnalystDemo({
   modelProvider = "auto",
   outputLanguage = "en",
+  responseMode = "fast",
+  reportStyle = "concise",
 }: {
   modelProvider?: ModelProvider;
   outputLanguage?: "en" | "zh";
+  responseMode?: "fast" | "deep" | "research";
+  reportStyle?: "concise" | "executive" | "detailed";
 }) {
   const { t } = useLanguage();
   const [orders, setOrders] = useState<OrderRow[] | null>(() => SAMPLE_ORDERS);
@@ -123,6 +127,8 @@ export function AnalystDemo({
             input: trimmed,
             provider: providerForApi,
             outputLanguage,
+            responseMode,
+            reportStyle,
             ...(datasetSummary ? { datasetSummary } : {}),
           }),
         });
@@ -147,7 +153,7 @@ export function AnalystDemo({
         setChatLoading(false);
       }
     },
-    [chatInput, chatLoading, datasetSummary, modelProvider, outputLanguage, t]
+    [chatInput, chatLoading, datasetSummary, modelProvider, outputLanguage, responseMode, reportStyle, t]
   );
 
   const suggestedPrompts = [
@@ -223,20 +229,32 @@ export function AnalystDemo({
             </div>
           </section>
 
-          <section className={CARD_CLASS}>
-            <h2 className="text-lg font-medium text-gray-900">{t("analyst.trendAnalysis")}</h2>
-            <p className="mt-2 text-sm text-gray-500">Revenue by month</p>
-            {dashboard.revenueByMonth.length > 0 ? (
-              <ul className="mt-4 space-y-2">
-                {dashboard.revenueByMonth.map((m) => (
-                  <li key={m.month} className="flex justify-between text-sm">
-                    <span className="text-gray-700">{m.month}</span>
-                    <span className="font-medium text-gray-900">${m.value.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-4 text-sm text-gray-500">No trend data yet.</p>
+          <section className={CARD_CLASS} aria-label={t("analyst.visualDashboard")}>
+            <h2 className="text-lg font-medium text-gray-900">{t("analyst.visualDashboard")}</h2>
+            <div className="mt-6 grid gap-8 lg:grid-cols-2">
+              <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-5">
+                <h3 className="text-sm font-semibold text-gray-900">{t("analyst.revenueTrend")}</h3>
+                <RevenueTrendChart
+                  data={dashboard.revenueByMonth.map((m) => ({ label: m.month, value: m.value }))}
+                  valueLabel={t("analyst.revenueTrend")}
+                />
+              </div>
+              <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-5">
+                <h3 className="text-sm font-semibold text-gray-900">{t("analyst.categoryBreakdown")}</h3>
+                <HorizontalBarChart
+                  data={dashboard.categoryBreakdown.map((c) => ({ label: c.name, value: c.value }))}
+                  maxItems={8}
+                />
+              </div>
+            </div>
+            {dashboard.topProducts.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold text-gray-900">{t("analyst.topProducts")}</h3>
+                <HorizontalBarChart
+                  data={dashboard.topProducts.map((p) => ({ label: p.name, value: p.value }))}
+                  maxItems={6}
+                />
+              </div>
             )}
           </section>
 

@@ -83,11 +83,15 @@ const FULL_REPORT_PROMPT =
 type EcommerceDemoProps = {
   modelProvider?: ModelProvider;
   outputLanguage?: "en" | "zh";
+  responseMode?: "fast" | "deep" | "research";
+  reportStyle?: "concise" | "executive" | "detailed";
 };
 
 export function EcommerceDemo({
   modelProvider = "auto",
   outputLanguage = "en",
+  responseMode = "fast",
+  reportStyle = "concise",
 }: EcommerceDemoProps) {
   const { t } = useLanguage();
   const inputSectionRef = useRef<HTMLDivElement>(null);
@@ -216,6 +220,8 @@ export function EcommerceDemo({
             input: trimmed,
             provider: providerForApi,
             outputLanguage,
+            responseMode,
+            reportStyle,
             systemPromptOverride: systemPrompt,
             taskHint: "ecommerce",
           }),
@@ -245,7 +251,7 @@ export function EcommerceDemo({
         setChatLoading(false);
       }
     },
-    [chatInput, chatLoading, datasetSummary, outputLanguage, providerForApi, t]
+    [chatInput, chatLoading, datasetSummary, outputLanguage, providerForApi, responseMode, reportStyle, t]
   );
 
   const sendMessage = useCallback(
@@ -271,6 +277,8 @@ export function EcommerceDemo({
             input: messageText.trim(),
             provider: providerForApi,
             outputLanguage,
+            responseMode,
+            reportStyle,
             systemPromptOverride: systemPrompt,
             taskHint: "ecommerce",
           }),
@@ -300,7 +308,7 @@ export function EcommerceDemo({
         setChatLoading(false);
       }
     },
-    [chatLoading, datasetSummary, outputLanguage, providerForApi, t]
+    [chatLoading, datasetSummary, outputLanguage, providerForApi, responseMode, reportStyle, t]
   );
 
   const handleGenerateFullReport = useCallback(() => {

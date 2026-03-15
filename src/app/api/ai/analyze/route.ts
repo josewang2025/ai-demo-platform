@@ -22,6 +22,23 @@ const PROVIDER_LABEL: Record<string, string> = {
   deepseek: "deepseek",
 };
 
+function buildResponseModeAndReportStyleInstructions(
+  responseMode: "fast" | "deep" | "research",
+  reportStyle: "concise" | "executive" | "detailed"
+): string {
+  const modeInstructions: Record<string, string> = {
+    fast: "Response mode: FAST. Give short answers with simple structure, few sections, and quick highlights only. Minimize length and token usage.",
+    deep: "Response mode: DEEP. Provide structured analysis with clear reasoning, stronger insights, and include risks and recommendations.",
+    research: "Response mode: RESEARCH. Be context-aware, include comparative analysis, synthesized findings, and consultant/analyst-style output.",
+  };
+  const styleInstructions: Record<string, string> = {
+    concise: "Report style: CONCISE. Use a short summary, minimal sections, and keep everything highly skimmable.",
+    executive: "Report style: EXECUTIVE. Include an executive summary, KPIs/findings/risks/recommendations, suitable for decision makers.",
+    detailed: "Report style: DETAILED. Use more section depth, richer explanation, and more breakdown and interpretation.",
+  };
+  return [modeInstructions[responseMode], styleInstructions[reportStyle]].filter(Boolean).join(" ");
+}
+
 function buildDefaultSystemContent(datasetSummary?: string): string {
   if (datasetSummary) {
     return `You are an analyst. Answer using ONLY the following dataset summary. Be concise and business-focused.\n\nDataset summary:\n${datasetSummary}`;
@@ -45,6 +62,7 @@ export async function POST(request: Request) {
       provider: requestedProvider,
       responseMode = "fast",
       outputLanguage = "en",
+      reportStyle = "concise",
       systemPromptOverride,
       datasetSummary,
       taskHint = "default",
@@ -59,9 +77,11 @@ export async function POST(request: Request) {
 
     const provider =
       requestedProvider ?? getDefaultModelProvider();
-    const systemContent =
+    const baseContent =
       systemPromptOverride ?? buildDefaultSystemContent(datasetSummary);
-    const maxTokens = responseMode === "research" || systemPromptOverride ? 1024 : 500;
+    const modeAndStyle = buildResponseModeAndReportStyleInstructions(responseMode, reportStyle);
+    const systemContent = baseContent + "\n\n" + modeAndStyle;
+    const maxTokens = responseMode === "research" || systemPromptOverride ? 1024 : responseMode === "deep" ? 800 : 500;
 
     const routeProvider =
       provider === "anthropic" ? "claude" : provider;

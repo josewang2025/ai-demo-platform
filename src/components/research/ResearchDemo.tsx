@@ -5,12 +5,24 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
 import { getProviderUnavailableErrorKey } from "@/lib/providerError";
 
+const EXAMPLE_TOPIC_KEYS = [
+  "research.exampleTopic1",
+  "research.exampleTopic2",
+  "research.exampleTopic3",
+  "research.exampleTopic4",
+  "research.exampleTopic5",
+] as const;
+
 export function ResearchDemo({
   modelProvider = "auto",
   outputLanguage = "en",
+  responseMode = "fast",
+  reportStyle = "concise",
 }: {
   modelProvider?: ModelProvider;
   outputLanguage?: "en" | "zh";
+  responseMode?: "fast" | "deep" | "research";
+  reportStyle?: "concise" | "executive" | "detailed";
 }) {
   const { t } = useLanguage();
   const [topic, setTopic] = useState("");
@@ -31,6 +43,8 @@ export function ResearchDemo({
           input: `Research this topic in ${depth} depth and provide a structured report: ${topic}`,
           provider: providerForApi,
           outputLanguage,
+          responseMode,
+          reportStyle,
           taskHint: "research",
         }),
       });
@@ -48,20 +62,42 @@ export function ResearchDemo({
     } finally {
       setLoading(false);
     }
-  }, [topic, depth, modelProvider, outputLanguage, loading, t]);
+  }, [topic, depth, modelProvider, outputLanguage, responseMode, reportStyle, loading, t]);
 
   return (
     <>
+      {/* What you'll get */}
+      <section className="rounded-xl border border-gray-200 bg-sky-50/50 p-5">
+        <h2 className="text-base font-semibold text-gray-900">{t("research.whatYouGet")}</h2>
+        <p className="mt-2 text-sm text-gray-600">{t("research.whatYouGetDesc")}</p>
+      </section>
+
       {/* Input */}
-      <section className="card">
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-medium text-gray-900">{t("research.topicLabel")}</h2>
+
+        <p className="mt-2 text-sm text-gray-500">{t("research.exampleTopics")}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {EXAMPLE_TOPIC_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTopic(t(key))}
+              className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50"
+            >
+              {t(key)}
+            </button>
+          ))}
+        </div>
+
         <input
           type="text"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder={t("research.topicPlaceholder")}
-          className="mt-3 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-500 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+          className="mt-4 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-500 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
         />
+
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700">{t("research.depthLabel")}</label>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -83,41 +119,41 @@ export function ResearchDemo({
             ))}
           </div>
         </div>
+
         <button
           type="button"
           onClick={handleRun}
           disabled={!topic.trim() || loading}
-          className="mt-6 btn-primary disabled:opacity-60"
+          className="mt-6 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
         >
-          {loading ? "Researching…" : "Generate report"}
+          {loading ? t("research.generating") : t("research.generateReport")}
         </button>
       </section>
 
-      {/* Output placeholders */}
+      {/* Output */}
       {report && (
         <>
-          <section className="card">
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-medium text-gray-900">{t("research.topicSummary")}</h2>
-            <p className="mt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{report.slice(0, 400)}…</p>
+            <div className="mt-3 rounded-lg bg-gray-50 p-4">
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {report.length > 500 ? report.slice(0, 500).trim() + "…" : report}
+              </p>
+            </div>
           </section>
-          <section className="card">
-            <h2 className="text-lg font-medium text-gray-900">{t("research.keyFindings")}</h2>
-            <p className="mt-3 text-sm text-gray-500">Key findings will appear here when the research pipeline is connected.</p>
-          </section>
-          <section className="card">
-            <h2 className="text-lg font-medium text-gray-900">{t("research.comparisonView")}</h2>
-            <p className="mt-3 text-sm text-gray-500">Comparison view will appear here when the research pipeline is connected.</p>
-          </section>
-          <section className="card">
+
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-medium text-gray-900">{t("research.finalReport")}</h2>
-            <p className="mt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{report}</p>
+            <div className="report-content mt-4 space-y-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {report}
+            </div>
           </section>
         </>
       )}
 
       {!report && !loading && (
-        <section className="card">
-          <p className="text-sm text-gray-500">Enter a topic above and click Generate report to see Topic Summary, Key Findings, Comparison View, and Final Report.</p>
+        <section className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-8 text-center">
+          <p className="text-sm text-gray-500">{t("research.emptyState")}</p>
         </section>
       )}
     </>
