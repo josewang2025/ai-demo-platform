@@ -5,10 +5,11 @@
 
 import { NextResponse } from "next/server";
 import { routeAndCall, type TaskHint } from "@/lib/ai/router";
+import { getDefaultModelProvider } from "@/lib/env";
 
 export type ChatRequestBody = {
   message: string;
-  provider?: "openai" | "anthropic" | "gemini";
+  provider?: "auto" | "openai" | "anthropic" | "claude" | "gemini" | "qwen" | "deepseek";
   datasetSummary?: string;
   language?: string;
   systemPromptOverride?: string;
@@ -18,6 +19,8 @@ const PROVIDER_LABEL: Record<string, string> = {
   openai: "GPT",
   anthropic: "Claude",
   gemini: "Gemini",
+  qwen: "Qwen",
+  deepseek: "DeepSeek",
 };
 
 function buildSystemContent(datasetSummary?: string): string {
@@ -30,7 +33,7 @@ function buildSystemContent(datasetSummary?: string): string {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ChatRequestBody;
-    const { message, provider = "openai", datasetSummary, language, systemPromptOverride } = body;
+    const { message, provider: requestedProvider, datasetSummary, language, systemPromptOverride } = body;
 
     if (!message || typeof message !== "string") {
       return NextResponse.json(
@@ -39,15 +42,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const provider = requestedProvider ?? getDefaultModelProvider();
     const systemContent = systemPromptOverride ?? buildSystemContent(datasetSummary);
     const maxTokens = systemPromptOverride ? 1024 : 500;
-    const providerParam =
-      provider === "anthropic" ? "claude" : (provider as "auto" | "openai" | "gemini");
+    const routeProvider =
+      provider === "anthropic" ? "claude" : provider;
+    const routeProviderTyped = routeProvider as "auto" | "openai" | "claude" | "gemini" | "qwen" | "deepseek";
 
     const { reply, provider: chosenProvider } = await routeAndCall({
       systemContent,
       userMessage: message,
-      provider: providerParam,
+      provider: routeProviderTyped,
       taskHint: "default",
       outputLanguage: language,
       maxTokens,

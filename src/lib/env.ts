@@ -53,11 +53,11 @@ export function getOptionalEnv(name: string): string | undefined {
 
 /**
  * Default model provider when client does not specify one.
- * Allowed: "auto" | "openai" | "claude" | "gemini"
+ * Allowed: "auto" | "openai" | "claude" | "gemini" | "qwen" | "deepseek"
  */
-export function getDefaultModelProvider(): "auto" | "openai" | "anthropic" | "gemini" {
+export function getDefaultModelProvider(): "auto" | "openai" | "anthropic" | "gemini" | "qwen" | "deepseek" {
   const v = getOptionalEnv("DEFAULT_MODEL_PROVIDER")?.toLowerCase();
-  if (v === "openai" || v === "anthropic" || v === "claude" || v === "gemini") {
+  if (v === "openai" || v === "anthropic" || v === "claude" || v === "gemini" || v === "qwen" || v === "deepseek") {
     return v === "claude" ? "anthropic" : v;
   }
   if (v === "auto") return "auto";
