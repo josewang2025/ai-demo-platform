@@ -100,6 +100,14 @@ const FALLBACK_ORDER: Array<keyof AvailableProviders> = [
   "gemini",
 ];
 
+const KEY_TO_PROVIDER: Record<keyof AvailableProviders, ProviderId> = {
+  openai: "openai",
+  claude: "anthropic",
+  gemini: "gemini",
+  qwen: "qwen",
+  deepseek: "deepseek",
+};
+
 /** Pick first available provider: preferred first, then fallback order. */
 function fallbackProvider(
   preferred: ProviderId,
@@ -114,16 +122,37 @@ function fallbackProvider(
   };
   const key = map[preferred];
   if (key && available[key]) return preferred;
-
   for (const k of FALLBACK_ORDER) {
     if (!available[k]) continue;
-    if (k === "openai") return "openai";
-    if (k === "claude") return "anthropic";
-    if (k === "gemini") return "gemini";
-    if (k === "qwen") return "qwen";
-    if (k === "deepseek") return "deepseek";
+    return KEY_TO_PROVIDER[k];
   }
   return null;
+}
+
+/** When provider is "auto", build ordered list of provider IDs to try (preferred first, then fallbacks). */
+function getAutoProviderCandidates(
+  preferred: ProviderId,
+  available: AvailableProviders
+): ProviderId[] {
+  const seen = new Set<ProviderId>();
+  const out: ProviderId[] = [];
+  const map: Record<ProviderId, keyof AvailableProviders> = {
+    openai: "openai",
+    anthropic: "claude",
+    gemini: "gemini",
+    qwen: "qwen",
+    deepseek: "deepseek",
+  };
+  function add(p: ProviderId) {
+    const key = map[p];
+    if (key && available[key] && !seen.has(p)) {
+      seen.add(p);
+      out.push(p);
+    }
+  }
+  add(preferred);
+  for (const k of FALLBACK_ORDER) add(KEY_TO_PROVIDER[k]);
+  return out;
 }
 
 function appendLanguageInstruction(content: string, lang?: string): string {
@@ -180,37 +209,35 @@ export async function routeAndCall(
     );
   }
 
-  if (chosen === "qwen") {
-    console.log("[ROUTER] selected provider: qwen");
-  }
-
   const system = appendLanguageInstruction(systemContent, outputLanguage);
   const payload = { systemContent: system, message: userMessage, maxTokens };
 
-  if (chosen === "openai") {
-    const reply = await callOpenAI(payload);
-    if (reply !== null) return { reply, provider: "openai" };
+  const tryProvider = async (p: ProviderId): Promise<string | null> => {
+    if (p === "openai") return callOpenAI(payload);
+    if (p === "anthropic") return callAnthropic(payload);
+    if (p === "gemini") return callGemini(payload);
+    if (p === "qwen") return callQwen(payload);
+    if (p === "deepseek") return callDeepSeek(payload);
+    return null;
+  };
+
+  if (provider === "auto") {
+    const candidates = getAutoProviderCandidates(chosen, available);
+    for (const p of candidates) {
+      try {
+        const reply = await tryProvider(p);
+        if (reply !== null) {
+          console.info("[ROUTER] auto: succeeded with", p);
+          return { reply, provider: p };
+        }
+      } catch (err) {
+        console.warn("[ROUTER] auto: provider failed", p, err instanceof Error ? err.message : String(err));
+      }
+    }
+    throw new Error("ANALYSIS_SERVICE_UNAVAILABLE");
   }
 
-  if (chosen === "anthropic") {
-    const reply = await callAnthropic(payload);
-    if (reply !== null) return { reply, provider: "anthropic" };
-  }
-
-  if (chosen === "gemini") {
-    const reply = await callGemini(payload);
-    if (reply !== null) return { reply, provider: "gemini" };
-  }
-
-  if (chosen === "qwen") {
-    const reply = await callQwen(payload);
-    if (reply !== null) return { reply, provider: "qwen" };
-  }
-
-  if (chosen === "deepseek") {
-    const reply = await callDeepSeek(payload);
-    if (reply !== null) return { reply, provider: "deepseek" };
-  }
-
+  const reply = await tryProvider(chosen);
+  if (reply !== null) return { reply, provider: chosen };
   throw new Error(`Provider unavailable (${chosen}). Check your API keys and try again.`);
 }

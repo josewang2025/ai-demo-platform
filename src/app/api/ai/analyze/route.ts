@@ -55,11 +55,12 @@ export async function POST(request: Request) {
     );
   }
 
+  let requestedProvider: AnalyzeRequestBody["provider"];
   try {
     const body = (await request.json()) as AnalyzeRequestBody;
+    requestedProvider = body.provider;
     const {
       input,
-      provider: requestedProvider,
       responseMode = "fast",
       outputLanguage = "en",
       reportStyle = "concise",
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
     }
 
     const provider =
-      requestedProvider ?? getDefaultModelProvider();
+      body.provider ?? getDefaultModelProvider();
     const baseContent =
       systemPromptOverride ?? buildDefaultSystemContent(datasetSummary);
     const modeAndStyle = buildResponseModeAndReportStyleInstructions(responseMode, reportStyle);
@@ -104,6 +105,13 @@ export async function POST(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("AI analyze error:", message);
+
+    if (requestedProvider === "auto") {
+      return NextResponse.json(
+        { success: false, error: "analysis_service_unavailable" },
+        { status: 503 }
+      );
+    }
 
     const explicitMatch = message.match(/^PROVIDER_UNAVAILABLE:(\w+)$/);
     const afterCallMatch = message.match(/Provider unavailable \((\w+)\)/);

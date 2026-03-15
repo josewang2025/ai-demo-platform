@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
 import { getProviderUnavailableErrorKey } from "@/lib/providerError";
@@ -12,6 +12,65 @@ const EXAMPLE_TOPIC_KEYS = [
   "research.exampleTopic4",
   "research.exampleTopic5",
 ] as const;
+
+const ROTATE_MS = 4000;
+
+/** Parse report text into sections by common headings (case-insensitive). */
+function parseReportSections(report: string): Record<string, string> {
+  const sections: Record<string, string> = {};
+  const keys = [
+    "topic summary",
+    "key findings",
+    "comparison view",
+    "comparison",
+    "opportunities",
+    "risks",
+    "final recommendations",
+    "recommendations",
+    "final report",
+  ];
+  const text = report.trim();
+  const lower = text.toLowerCase();
+
+  function findSection(key: string): { start: number; end: number } | null {
+    const patterns = [
+      new RegExp(`\\n##\\s*${key}[^\\n]*\\n`, "gi"),
+      new RegExp(`\\n###?\\s*${key}[^\\n]*\\n`, "gi"),
+      new RegExp(`\\n\\*\\*${key}[^\\n]*\\*\\*\\n`, "gi"),
+      new RegExp(`\\n${key}\\s*:?\\s*\\n`, "gi"),
+    ];
+    let start = -1;
+    for (const re of patterns) {
+      const m = lower.match(re);
+      if (m && m.index !== undefined) {
+        const pos = m.index;
+        if (start === -1 || pos < start) start = pos;
+      }
+    }
+    if (start === -1) return null;
+    const end = text.indexOf("\n\n", start + 1);
+    return { start, end: end === -1 ? text.length : end };
+  }
+
+  let summaryEnd = text.length;
+  for (const key of keys) {
+    const found = findSection(key);
+    if (found) {
+      const normalizedKey = key.replace(/\s+/g, "");
+      const raw = text.slice(found.start, found.end).replace(/^[#*\s]+/gm, "").trim();
+      if (raw && !sections[normalizedKey]) sections[normalizedKey] = raw;
+      if (key === "topic summary" || key === "key findings") summaryEnd = Math.min(summaryEnd, found.start);
+    }
+  }
+
+  if (!sections.topicsummary && text) {
+    sections.topicsummary = text.slice(0, 600).trim() + (text.length > 600 ? "…" : "");
+  }
+  if (!sections.finalreport && text) {
+    sections.finalreport = text;
+  }
+  return sections;
+}
 
 export function ResearchDemo({
   modelProvider = "auto",
@@ -29,6 +88,19 @@ export function ResearchDemo({
   const [depth, setDepth] = useState<"quick" | "standard" | "deep">("standard");
   const [report, setReport] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const suggestionRef = useRef(t(EXAMPLE_TOPIC_KEYS[0]));
+
+  const suggestions = EXAMPLE_TOPIC_KEYS.map((k) => t(k));
+  const currentSuggestion = suggestions[placeholderIndex];
+  suggestionRef.current = currentSuggestion;
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPlaceholderIndex((i) => (i + 1) % suggestions.length);
+    }, ROTATE_MS);
+    return () => clearInterval(id);
+  }, [suggestions.length]);
 
   const handleRun = useCallback(async () => {
     if (!topic.trim() || loading) return;
@@ -53,9 +125,11 @@ export function ResearchDemo({
         ? data.reply
         : data.error === "rate_limit_exceeded"
           ? t("errors.rateLimit")
-          : data.error === "provider_unavailable"
-            ? t(getProviderUnavailableErrorKey(data.provider))
-            : data.reply ?? t("research.couldNotGenerate");
+          : data.error === "analysis_service_unavailable"
+            ? t("errors.analysisServiceUnavailable")
+            : data.error === "provider_unavailable"
+              ? t(getProviderUnavailableErrorKey(data.provider))
+              : data.reply ?? t("research.couldNotGenerate");
       setReport(message);
     } catch {
       setReport(t("errors.generic"));
@@ -63,6 +137,28 @@ export function ResearchDemo({
       setLoading(false);
     }
   }, [topic, depth, modelProvider, outputLanguage, responseMode, reportStyle, loading, t]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Tab") return;
+      const suggestion = suggestionRef.current;
+      if (!suggestion) return;
+      const trimmed = topic.trim();
+      if (trimmed.length === 0 || suggestion.toLowerCase().startsWith(trimmed.toLowerCase())) {
+        e.preventDefault();
+        setTopic(suggestion);
+      }
+    },
+    [topic]
+  );
+
+  const sections = report ? parseReportSections(report) : null;
+  const isError = report && (
+    report === t("errors.rateLimit") ||
+    report === t("errors.analysisServiceUnavailable") ||
+    report === t("errors.generic") ||
+    report === t("research.couldNotGenerate")
+  );
 
   return (
     <>
@@ -94,9 +190,12 @@ export function ResearchDemo({
           type="text"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          placeholder={t("research.topicPlaceholder")}
+          onKeyDown={handleKeyDown}
+          placeholder={currentSuggestion}
           className="mt-4 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-500 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+          aria-label={t("research.topicLabel")}
         />
+        <p className="mt-1.5 text-xs text-gray-400">{t("research.tabHint")}</p>
 
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700">{t("research.depthLabel")}</label>
@@ -131,24 +230,79 @@ export function ResearchDemo({
       </section>
 
       {/* Output */}
-      {report && (
-        <>
+      {report && !isError && sections && (
+        <div className="space-y-6">
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-medium text-gray-900">{t("research.topicSummary")}</h2>
             <div className="mt-3 rounded-lg bg-gray-50 p-4">
               <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {report.length > 500 ? report.slice(0, 500).trim() + "…" : report}
+                {sections.topicsummary ?? report.slice(0, 500).trim() + (report.length > 500 ? "…" : "")}
               </p>
             </div>
           </section>
 
+          {sections.keyfindings && (
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-medium text-gray-900">{t("research.keyFindings")}</h2>
+              <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50/50 p-4">
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{sections.keyfindings}</p>
+              </div>
+            </section>
+          )}
+
+          {(sections.comparisonview || sections.comparison) && (
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-medium text-gray-900">{t("research.comparisonView")}</h2>
+              <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/50 p-4">
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {sections.comparisonview || sections.comparison}
+                </p>
+              </div>
+            </section>
+          )}
+
+          {sections.opportunities && (
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-medium text-gray-900">{t("research.opportunities")}</h2>
+              <div className="mt-3 rounded-lg border border-green-100 bg-green-50/50 p-4">
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{sections.opportunities}</p>
+              </div>
+            </section>
+          )}
+
+          {sections.risks && (
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-medium text-gray-900">{t("research.risks")}</h2>
+              <div className="mt-3 rounded-lg border border-red-100 bg-red-50/50 p-4">
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{sections.risks}</p>
+              </div>
+            </section>
+          )}
+
+          {(sections.finalrecommendations || sections.recommendations) && (
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-medium text-gray-900">{t("research.finalRecommendations")}</h2>
+              <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50/50 p-4">
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {sections.finalrecommendations || sections.recommendations}
+                </p>
+              </div>
+            </section>
+          )}
+
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-medium text-gray-900">{t("research.finalReport")}</h2>
             <div className="report-content mt-4 space-y-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {report}
+              {sections.finalreport ?? report}
             </div>
           </section>
-        </>
+        </div>
+      )}
+
+      {report && isError && (
+        <section className="rounded-xl border border-red-200 bg-red-50/50 p-6">
+          <p className="text-sm text-red-800">{report}</p>
+        </section>
       )}
 
       {!report && !loading && (

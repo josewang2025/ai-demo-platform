@@ -116,6 +116,8 @@ export function EcommerceDemo({
     t("ecommerce.exampleQ4"),
     t("ecommerce.exampleQ5"),
   ];
+  const firstSuggestionRef = useRef(exampleQuestions[0]);
+  firstSuggestionRef.current = exampleQuestions[0];
 
   const dashboard = useMemo(
     () => (data ? computeShopifyDashboard(data) : null),
@@ -231,9 +233,11 @@ export function EcommerceDemo({
           ? body.reply
           : body.error === "rate_limit_exceeded"
             ? t("errors.rateLimit")
-            : body.error === "provider_unavailable"
-              ? t(getProviderUnavailableErrorKey(body.provider))
-              : body.reply ?? t("errors.generic");
+            : body.error === "analysis_service_unavailable"
+              ? t("errors.analysisServiceUnavailable")
+              : body.error === "provider_unavailable"
+                ? t(getProviderUnavailableErrorKey(body.provider))
+                : body.reply ?? t("errors.generic");
         setMessages((prev) => [
           ...prev,
           { id: `assistant-${Date.now()}`, role: "assistant", content: reply },
@@ -288,9 +292,11 @@ export function EcommerceDemo({
           ? body.reply
           : body.error === "rate_limit_exceeded"
             ? t("errors.rateLimit")
-            : body.error === "provider_unavailable"
-              ? t(getProviderUnavailableErrorKey(body.provider))
-              : body.reply ?? t("errors.generic");
+            : body.error === "analysis_service_unavailable"
+              ? t("errors.analysisServiceUnavailable")
+              : body.error === "provider_unavailable"
+                ? t(getProviderUnavailableErrorKey(body.provider))
+                : body.reply ?? t("errors.generic");
         setMessages((prev) => [
           ...prev,
           { id: `assistant-${Date.now()}`, role: "assistant", content: reply },
@@ -573,10 +579,21 @@ export function EcommerceDemo({
           </div>
         </div>
 
+        <p className="mt-1.5 text-xs text-gray-400">{t("research.tabHint")}</p>
         <form onSubmit={handleSubmitChat} className="mt-4 flex gap-3">
           <input
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Tab") return;
+              const s = firstSuggestionRef.current;
+              if (!s) return;
+              const trimmed = chatInput.trim();
+              if (trimmed.length === 0 || s.toLowerCase().startsWith(trimmed.toLowerCase())) {
+                e.preventDefault();
+                setChatInput(s);
+              }
+            }}
             placeholder={t("ecommerce.askPlaceholder")}
             disabled={chatLoading || !hasData}
             className="min-h-[44px] flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:opacity-60"
