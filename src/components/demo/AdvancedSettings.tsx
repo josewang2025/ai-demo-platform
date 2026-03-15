@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export type ResponseMode = "fast" | "deep" | "research";
-export type ModelProvider = "auto" | "openai" | "anthropic" | "gemini";
+export type ModelProvider = "auto" | "openai" | "anthropic" | "gemini" | "qwen" | "deepseek";
 export type OutputLanguage = "en" | "zh";
 export type ReportStyle = "concise" | "executive" | "detailed";
 
@@ -22,10 +22,76 @@ const DEFAULT_STATE: AdvancedSettingsState = {
   reportStyle: "concise",
 };
 
+/**
+ * Map UI provider selection to API-supported provider.
+ * Passes through qwen and deepseek; backend router handles availability and fallback.
+ */
+export function getResolvedProviderForApi(
+  provider: ModelProvider
+): "auto" | "openai" | "anthropic" | "gemini" | "qwen" | "deepseek" {
+  return provider;
+}
+
+const RESPONSE_MODES: ResponseMode[] = ["fast", "deep", "research"];
+const MODEL_PROVIDERS: ModelProvider[] = [
+  "auto",
+  "openai",
+  "anthropic",
+  "gemini",
+  "qwen",
+  "deepseek",
+];
+const OUTPUT_LANGUAGES: OutputLanguage[] = ["en", "zh"];
+const REPORT_STYLES: ReportStyle[] = ["concise", "executive", "detailed"];
+
 type AdvancedSettingsProps = {
   state?: Partial<AdvancedSettingsState>;
   onChange?: (state: AdvancedSettingsState) => void;
 };
+
+function SettingSection({
+  title,
+  help,
+  children,
+}: {
+  title: string;
+  help?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        {help && <p className="mt-0.5 text-xs text-gray-500">{help}</p>}
+      </div>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
+function OptionPill<T extends string>({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-4 py-2 text-sm font-medium transition-all ${
+        selected
+          ? "border-gray-900 bg-gray-900 text-white shadow-sm"
+          : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function AdvancedSettings({ state: controlledState, onChange }: AdvancedSettingsProps) {
   const { t } = useLanguage();
@@ -39,103 +105,111 @@ export function AdvancedSettings({ state: controlledState, onChange }: AdvancedS
     onChange?.(next);
   };
 
+  const getProviderLabel = (p: ModelProvider) => {
+    switch (p) {
+      case "auto":
+        return t("advanced.modelAuto");
+      case "openai":
+        return t("advanced.modelOpenAI");
+      case "anthropic":
+        return t("advanced.modelClaude");
+      case "gemini":
+        return t("advanced.modelGemini");
+      case "qwen":
+        return t("advanced.modelQwen");
+      case "deepseek":
+        return t("advanced.modelDeepSeek");
+      default:
+        return p;
+    }
+  };
+
   return (
-    <section className="card">
+    <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between text-left"
+        className="flex w-full items-center justify-between px-6 py-5 text-left transition-colors hover:bg-gray-50/50"
         aria-expanded={open}
       >
-        <h2 className="text-lg font-medium text-gray-900">{t("advanced.title")}</h2>
-        <span className="text-gray-500" aria-hidden>
-          {open ? "−" : "+"}
+        <h2 className="text-lg font-semibold text-gray-900">
+          {t("advanced.collapseLabel")}
+        </h2>
+        <span
+          className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </span>
       </button>
       {open && (
-        <div className="mt-6 space-y-6 border-t border-gray-200 pt-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t("advanced.responseMode")}</label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(["fast", "deep", "research"] as const).map((mode) => (
-                <button
+        <div className="border-t border-gray-100 px-6 pb-6 pt-5">
+          <div className="space-y-8">
+            <SettingSection
+              title={t("advanced.responseMode")}
+              help={t("advanced.responseModeHelp")}
+            >
+              {RESPONSE_MODES.map((mode) => (
+                <OptionPill
                   key={mode}
-                  type="button"
+                  selected={state.responseMode === mode}
                   onClick={() => update({ responseMode: mode })}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    state.responseMode === mode
-                      ? "border-gray-900 bg-gray-900 text-white"
-                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                  }`}
                 >
                   {mode === "fast" && t("advanced.responseModeFast")}
                   {mode === "deep" && t("advanced.responseModeDeep")}
                   {mode === "research" && t("advanced.responseModeResearch")}
-                </button>
+                </OptionPill>
               ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t("advanced.modelProvider")}</label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(["auto", "openai", "anthropic", "gemini"] as const).map((provider) => (
-                <button
+            </SettingSection>
+
+            <SettingSection
+              title={t("advanced.modelProvider")}
+              help={t("advanced.modelProviderHelp")}
+            >
+              {MODEL_PROVIDERS.map((provider) => (
+                <OptionPill
                   key={provider}
-                  type="button"
+                  selected={state.modelProvider === provider}
                   onClick={() => update({ modelProvider: provider })}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    state.modelProvider === provider
-                      ? "border-gray-900 bg-gray-900 text-white"
-                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                  }`}
                 >
-                  {provider === "auto" && t("advanced.modelAuto")}
-                  {provider === "openai" && t("advanced.modelOpenAI")}
-                  {provider === "anthropic" && t("advanced.modelClaude")}
-                  {provider === "gemini" && t("advanced.modelGemini")}
-                </button>
+                  {getProviderLabel(provider)}
+                </OptionPill>
               ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t("advanced.outputLanguage")}</label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(["en", "zh"] as const).map((lang) => (
-                <button
+            </SettingSection>
+
+            <SettingSection
+              title={t("advanced.outputLanguage")}
+              help={t("advanced.outputLanguageHelp")}
+            >
+              {OUTPUT_LANGUAGES.map((lang) => (
+                <OptionPill
                   key={lang}
-                  type="button"
+                  selected={state.outputLanguage === lang}
                   onClick={() => update({ outputLanguage: lang })}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    state.outputLanguage === lang
-                      ? "border-gray-900 bg-gray-900 text-white"
-                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                  }`}
                 >
                   {lang === "en" ? t("advanced.outputEn") : t("advanced.outputZh")}
-                </button>
+                </OptionPill>
               ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">{t("advanced.reportStyle")}</label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(["concise", "executive", "detailed"] as const).map((style) => (
-                <button
+            </SettingSection>
+
+            <SettingSection
+              title={t("advanced.reportStyle")}
+              help={t("advanced.reportStyleHelp")}
+            >
+              {REPORT_STYLES.map((style) => (
+                <OptionPill
                   key={style}
-                  type="button"
+                  selected={state.reportStyle === style}
                   onClick={() => update({ reportStyle: style })}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    state.reportStyle === style
-                      ? "border-gray-900 bg-gray-900 text-white"
-                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                  }`}
                 >
                   {style === "concise" && t("advanced.reportConcise")}
                   {style === "executive" && t("advanced.reportExecutive")}
                   {style === "detailed" && t("advanced.reportDetailed")}
-                </button>
+                </OptionPill>
               ))}
-            </div>
+            </SettingSection>
           </div>
         </div>
       )}

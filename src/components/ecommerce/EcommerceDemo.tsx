@@ -9,6 +9,8 @@ import {
 } from "./shopifyDashboardUtils";
 import { ECOMMERCE_CONSULTANT_PROMPT } from "./ecommerceConsultantPrompt";
 import { MetricCard } from "@/components/ui";
+import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const CARD_CLASS =
   "rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md";
@@ -67,33 +69,18 @@ function parseShopifyCsv(csvText: string): ShopifyRow[] {
 
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string };
 
-const INITIAL_MESSAGE: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  content:
-    "Load your data above, then ask a business question or click **Generate full report** for a consultant-style analysis.",
-};
-
-const EXAMPLE_QUESTIONS = [
-  "Which products are driving most of the revenue?",
-  "Are there any underperforming products?",
-  "What trends do you see in the sales data?",
-  "Which products should we promote more?",
-  "What are the biggest risks in this store right now?",
-];
-
 const ANALYSIS_FOCUS_OPTIONS = [
-  { value: "sales" as const, label: "Sales" },
-  { value: "products" as const, label: "Products" },
-  { value: "campaigns" as const, label: "Campaigns" },
-  { value: "customers" as const, label: "Customers" },
-];
+  { value: "sales" as const, labelKey: "ecommerce.focusSales" as const },
+  { value: "products" as const, labelKey: "ecommerce.focusProducts" as const },
+  { value: "campaigns" as const, labelKey: "ecommerce.focusCampaigns" as const },
+  { value: "customers" as const, labelKey: "ecommerce.focusCustomers" as const },
+] as const;
 
 const FULL_REPORT_PROMPT =
   "Generate a full analyst report using the dataset summary. Structure your response with: Executive Summary, Key Metrics Snapshot, Product Performance Insights, Revenue & Trend Signals, and Recommended Next Actions. Include at least one non-obvious risk or insight.";
 
 type EcommerceDemoProps = {
-  modelProvider?: "auto" | "openai" | "anthropic" | "gemini";
+  modelProvider?: ModelProvider;
   outputLanguage?: "en" | "zh";
 };
 
@@ -101,6 +88,7 @@ export function EcommerceDemo({
   modelProvider = "auto",
   outputLanguage = "en",
 }: EcommerceDemoProps) {
+  const { t } = useLanguage();
   const inputSectionRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -111,8 +99,18 @@ export function EcommerceDemo({
     "sales" | "products" | "campaigns" | "customers"
   >("sales");
   const [chatInput, setChatInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { id: "welcome", role: "assistant", content: "" },
+  ]);
   const [chatLoading, setChatLoading] = useState(false);
+
+  const exampleQuestions = [
+    t("ecommerce.exampleQ1"),
+    t("ecommerce.exampleQ2"),
+    t("ecommerce.exampleQ3"),
+    t("ecommerce.exampleQ4"),
+    t("ecommerce.exampleQ5"),
+  ];
 
   const dashboard = useMemo(
     () => (data ? computeShopifyDashboard(data) : null),
@@ -187,8 +185,7 @@ export function EcommerceDemo({
     setTimeout(() => fileInputRef.current?.click(), 400);
   }, [scrollToInput]);
 
-  const apiProvider =
-    modelProvider === "auto" ? "openai" : modelProvider;
+  const providerForApi = getResolvedProviderForApi(modelProvider ?? "auto");
 
   const handleSubmitChat = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -216,7 +213,7 @@ export function EcommerceDemo({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             input: trimmed,
-            provider: apiProvider,
+            provider: providerForApi,
             outputLanguage,
             systemPromptOverride: systemPrompt,
             taskHint: "ecommerce",
@@ -226,11 +223,10 @@ export function EcommerceDemo({
         const reply = body.success && body.reply
           ? body.reply
           : body.error === "rate_limit_exceeded"
-            ? "Too many requests. Please try again in a minute."
+            ? t("errors.rateLimit")
             : body.error === "provider_unavailable"
-              ? "AI provider unavailable. Add API keys in Environment Variables."
-              : body.reply ??
-          "Something went wrong. Try again.";
+              ? t("errors.providerUnavailable")
+              : body.reply ?? t("errors.generic");
         setMessages((prev) => [
           ...prev,
           { id: `assistant-${Date.now()}`, role: "assistant", content: reply },
@@ -241,14 +237,14 @@ export function EcommerceDemo({
           {
             id: `assistant-${Date.now()}`,
             role: "assistant",
-            content: "Something went wrong. Check your connection and try again.",
+            content: t("errors.generic"),
           },
         ]);
       } finally {
         setChatLoading(false);
       }
     },
-    [chatInput, chatLoading, datasetSummary, outputLanguage, apiProvider]
+    [chatInput, chatLoading, datasetSummary, outputLanguage, providerForApi, t]
   );
 
   const sendMessage = useCallback(
@@ -272,7 +268,7 @@ export function EcommerceDemo({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             input: messageText.trim(),
-            provider: apiProvider,
+            provider: providerForApi,
             outputLanguage,
             systemPromptOverride: systemPrompt,
             taskHint: "ecommerce",
@@ -282,10 +278,10 @@ export function EcommerceDemo({
         const reply = body.success && body.reply
           ? body.reply
           : body.error === "rate_limit_exceeded"
-            ? "Too many requests. Please try again in a minute."
+            ? t("errors.rateLimit")
             : body.error === "provider_unavailable"
-              ? "AI provider unavailable. Add API keys in Environment Variables."
-              : body.reply ?? "Something went wrong. Try again.";
+              ? t("errors.providerUnavailable")
+              : body.reply ?? t("errors.generic");
         setMessages((prev) => [
           ...prev,
           { id: `assistant-${Date.now()}`, role: "assistant", content: reply },
@@ -296,14 +292,14 @@ export function EcommerceDemo({
           {
             id: `assistant-${Date.now()}`,
             role: "assistant",
-            content: "Something went wrong. Check your connection and try again.",
+            content: t("errors.generic"),
           },
         ]);
       } finally {
         setChatLoading(false);
       }
     },
-    [chatLoading, datasetSummary, outputLanguage, apiProvider]
+    [chatLoading, datasetSummary, outputLanguage, providerForApi, t]
   );
 
   const handleGenerateFullReport = useCallback(() => {
@@ -311,7 +307,7 @@ export function EcommerceDemo({
   }, [sendMessage]);
 
   const handleClearChat = useCallback(() => {
-    setMessages([INITIAL_MESSAGE]);
+    setMessages([{ id: "welcome", role: "assistant", content: "" }]);
   }, []);
 
   const hasData = data !== null && data.length > 0;
@@ -322,15 +318,13 @@ export function EcommerceDemo({
       {/* Hero */}
       <section className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm md:p-10">
         <h1 className="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-          AI Ecommerce Analyst
+          {t("ecommerce.heroTitle")}
         </h1>
         <p className="mt-3 max-w-2xl text-lg text-gray-600">
-          Turn store data into clear insights, trend signals, and growth
-          recommendations.
+          {t("ecommerce.heroSubtitle")}
         </p>
         <p className="mt-2 text-sm text-gray-500">
-          The right model for the right task — routed automatically for
-          business use cases.
+          {t("ecommerce.heroSupport")}
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
           <button
@@ -338,26 +332,26 @@ export function EcommerceDemo({
             onClick={handleUseSample}
             className="btn-primary"
           >
-            Try Sample Data
+            {t("ecommerce.trySampleData")}
           </button>
           <button
             type="button"
             onClick={triggerUpload}
             className="btn-secondary"
           >
-            Upload CSV
+            {t("ecommerce.uploadCsv")}
           </button>
         </div>
       </section>
 
       {/* Input panel */}
       <section ref={inputSectionRef} className={CARD_CLASS}>
-        <h2 className="text-lg font-medium text-gray-900">Your data</h2>
+        <h2 className="text-lg font-medium text-gray-900">{t("common.yourData")}</h2>
         {hasData && (
           <p className="mt-2 text-sm text-gray-600">
             {isSample
-              ? `Sample dataset (${data!.length} rows)`
-              : `Loaded: ${uploadedFileName} (${data!.length} rows)`}
+              ? `${t("common.usingSampleData")} (${data!.length} ${t("common.rows")})`
+              : `${t("common.loaded")}: ${uploadedFileName} (${data!.length} ${t("common.rows")})`}
           </p>
         )}
         <div
@@ -366,12 +360,10 @@ export function EcommerceDemo({
           onDragOver={handleDragOver}
         >
           <p className="text-sm font-medium text-gray-900">
-            Drag & drop a CSV here
+            {t("common.dragDropCsv")}
           </p>
           <p className="mt-1.5 text-sm text-gray-500">
-            Or use the sample dataset or choose a file. Columns: date,
-            product_name, category, orders, units_sold, revenue, ad_spend,
-            conversion_rate, inventory.
+            {t("ecommerce.uploadHintColumns")}
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <button
@@ -379,21 +371,21 @@ export function EcommerceDemo({
               onClick={() => fileInputRef.current?.click()}
               className="btn-secondary py-2.5 px-4"
             >
-              Choose file
+              {t("common.chooseFile")}
             </button>
             <a
               href="/ecommerce_template.csv"
               download="ecommerce_template.csv"
               className="btn-secondary inline-block py-2.5 px-4"
             >
-              Download CSV Template
+              {t("common.downloadTemplate")}
             </a>
             <button
               type="button"
               onClick={handleUseSample}
               className="btn-secondary py-2.5 px-4"
             >
-              Use Sample Dataset
+              {t("common.useSampleData")}
             </button>
           </div>
           <input
@@ -410,7 +402,7 @@ export function EcommerceDemo({
 
         <div className="mt-6">
           <label className="block text-sm font-medium text-gray-700">
-            Analysis focus
+            {t("common.analysisFocus")}
           </label>
           <div className="mt-2 flex flex-wrap gap-2">
             {ANALYSIS_FOCUS_OPTIONS.map((opt) => (
@@ -424,7 +416,7 @@ export function EcommerceDemo({
                     : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                {opt.label}
+                {t(opt.labelKey)}
               </button>
             ))}
           </div>
@@ -432,10 +424,10 @@ export function EcommerceDemo({
 
         <div className="mt-6">
           <p className="text-sm font-medium text-gray-700">
-            Example Questions
+            {t("common.exampleQuestions")}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {EXAMPLE_QUESTIONS.map((q, i) => (
+            {exampleQuestions.map((q, i) => (
               <button
                 key={i}
                 type="button"
@@ -451,32 +443,32 @@ export function EcommerceDemo({
 
       {/* Performance Overview */}
       {dashboard && (
-        <section aria-label="Performance overview">
+        <section aria-label={t("common.performanceOverview")}>
           <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Performance Overview
+            {t("common.performanceOverview")}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <MetricCard
-              label="Total Revenue"
+              label={t("ecommerce.totalRevenue")}
               value={`$${dashboard.totalRevenue.toLocaleString("en-US", {
                 maximumFractionDigits: 0,
               })}`}
             />
             <MetricCard
-              label="Orders"
+              label={t("ecommerce.orders")}
               value={dashboard.totalOrders.toLocaleString()}
             />
             <MetricCard
-              label="Avg Conversion"
+              label={t("ecommerce.avgConversion")}
               value={`${dashboard.avgConversionRate.toFixed(2)}%`}
             />
-            <MetricCard label="Top Product" value={dashboard.topProduct} />
+            <MetricCard label={t("ecommerce.topProduct")} value={dashboard.topProduct} />
             <MetricCard
-              label="Inventory Risk"
+              label={t("ecommerce.inventoryRisk")}
               value={
                 dashboard.lowInventoryRisk.length > 0
                   ? dashboard.lowInventoryRisk.join(", ")
-                  : "None"
+                  : t("common.none")
               }
             />
           </div>
@@ -486,24 +478,24 @@ export function EcommerceDemo({
       {/* Store Signals */}
       {dashboard && (
         <section
-          aria-label="Store signals"
+          aria-label={t("common.storeSignals")}
           className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
         >
           <h2 className="text-lg font-medium text-gray-900 col-span-full">
-            Store Signals
+            {t("common.storeSignals")}
           </h2>
           <div className={CARD_CLASS}>
-            <h3 className="text-base font-medium text-gray-900">Revenue Trend</h3>
-            <p className="mt-1 text-sm text-gray-500">Daily revenue</p>
+            <h3 className="text-base font-medium text-gray-900">{t("ecommerce.revenueTrend")}</h3>
+            <p className="mt-1 text-sm text-gray-500">{t("ecommerce.dailyRevenue")}</p>
             {dashboard.revenueByDate.length > 0 && (
               <RevenueTrendChart data={dashboard.revenueByDate} />
             )}
           </div>
           <div className={CARD_CLASS}>
             <h3 className="text-base font-medium text-gray-900">
-              Product Performance
+              {t("ecommerce.productPerformanceChart")}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">By revenue</p>
+            <p className="mt-1 text-sm text-gray-500">{t("ecommerce.byRevenue")}</p>
             {dashboard.productPerformance.length > 0 && (
               <ProductPerformanceChart data={dashboard.productPerformance} />
             )}
@@ -516,11 +508,10 @@ export function EcommerceDemo({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-medium text-gray-900">
-              AI Analysis Report
+              {t("common.aiAnalysisReport")}
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              Consultant-style insights from your data. Ask a question or
-              generate a full report.
+              {t("ecommerce.consultantInsights")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -530,14 +521,14 @@ export function EcommerceDemo({
               disabled={!hasData || chatLoading}
               className="btn-secondary py-2 px-4 text-sm disabled:opacity-60"
             >
-              Generate full report
+              {t("common.generateFullReport")}
             </button>
             <button
               type="button"
               onClick={handleClearChat}
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              Clear
+              {t("common.clear")}
             </button>
           </div>
         </div>
@@ -557,6 +548,8 @@ export function EcommerceDemo({
                   <span className="max-w-[85%] rounded-xl bg-gray-900 px-4 py-2.5 text-white">
                     {m.content}
                   </span>
+                ) : m.id === "welcome" ? (
+                  <ReportMarkdown content={t("ecommerce.welcomeMessage")} />
                 ) : (
                   <ReportMarkdown content={m.content} />
                 )}
@@ -565,7 +558,7 @@ export function EcommerceDemo({
             {chatLoading && (
               <div className="flex items-center gap-2 py-4 text-gray-500">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" />
-                Generating analysis…
+                {t("ecommerce.generating")}
               </div>
             )}
           </div>
@@ -575,7 +568,7 @@ export function EcommerceDemo({
           <input
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            placeholder="e.g. Which products should we promote more?"
+            placeholder={t("ecommerce.askPlaceholder")}
             disabled={chatLoading || !hasData}
             className="min-h-[44px] flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:opacity-60"
           />
@@ -584,7 +577,7 @@ export function EcommerceDemo({
             disabled={chatLoading || !chatInput.trim() || !hasData}
             className="btn-primary min-h-[44px] px-5 disabled:opacity-60"
           >
-            Send
+            {t("common.send")}
           </button>
         </form>
       </section>

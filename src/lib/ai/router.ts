@@ -7,16 +7,25 @@ import { getOptionalEnv } from "@/lib/env";
 import { callOpenAI } from "./openai";
 import { callAnthropic } from "./anthropic";
 import { callGemini } from "./gemini";
+import { callQwen } from "./qwen";
+import { callDeepSeek } from "./deepseek";
 
-export type ProviderId = "openai" | "anthropic" | "gemini";
+export type ProviderId = "openai" | "anthropic" | "gemini" | "qwen" | "deepseek";
 export type TaskHint = "ecommerce" | "research" | "reasoning" | "default";
 
+export type AvailableProviders = Record<
+  "openai" | "claude" | "gemini" | "qwen" | "deepseek",
+  boolean
+>;
+
 /** Which providers have keys configured. Never log these values. */
-export function getAvailableProviders(): Record<"openai" | "claude" | "gemini", boolean> {
+export function getAvailableProviders(): AvailableProviders {
   return {
     openai: !!getOptionalEnv("OPENAI_API_KEY"),
     claude: !!getOptionalEnv("ANTHROPIC_API_KEY"),
     gemini: !!(getOptionalEnv("GOOGLE_API_KEY") || getOptionalEnv("GEMINI_API_KEY")),
+    qwen: !!getOptionalEnv("DASHSCOPE_API_KEY"),
+    deepseek: !!getOptionalEnv("DEEPSEEK_API_KEY"),
   };
 }
 
@@ -28,7 +37,7 @@ const LANGUAGE_INSTRUCTION: Record<string, string> = {
 export type RouteOptions = {
   systemContent: string;
   userMessage: string;
-  provider: "auto" | "openai" | "claude" | "gemini";
+  provider: "auto" | "openai" | "claude" | "gemini" | "qwen" | "deepseek";
   taskHint?: TaskHint | string;
   outputLanguage?: string;
   maxTokens?: number;
@@ -36,12 +45,22 @@ export type RouteOptions = {
 
 /**
  * Resolve provider when mode is "auto":
- * - ecommerce → openai
- * - research → gemini
- * - reasoning → claude (anthropic)
- * - otherwise → openai
+ * - For zh ecommerce/data/general tasks, prefer qwen or deepseek when available.
+ * - Otherwise: ecommerce → openai, research → gemini, reasoning → claude, default → openai.
  */
-function resolveAutoProvider(taskHint: TaskHint | string = "default"): ProviderId {
+function resolveAutoProvider(
+  taskHint: TaskHint | string = "default",
+  outputLanguage?: string
+): ProviderId {
+  const isZh = outputLanguage === "zh";
+  const preferZhProvider =
+    isZh &&
+    (taskHint === "ecommerce" || taskHint === "research" || taskHint === "default" || taskHint === "data");
+
+  if (preferZhProvider) {
+    return "qwen";
+  }
+
   switch (taskHint) {
     case "ecommerce":
       return "openai";
@@ -55,29 +74,55 @@ function resolveAutoProvider(taskHint: TaskHint | string = "default"): ProviderI
 }
 
 function resolveProvider(
-  provider: "auto" | "openai" | "claude" | "gemini",
-  taskHint: TaskHint | string = "default"
+  provider: "auto" | "openai" | "claude" | "gemini" | "qwen" | "deepseek",
+  taskHint: TaskHint | string = "default",
+  outputLanguage?: string
 ): ProviderId {
-  if (provider === "auto") return resolveAutoProvider(taskHint);
+  if (provider === "auto") return resolveAutoProvider(taskHint, outputLanguage);
   if (provider === "claude") return "anthropic";
-  if (provider === "openai" || provider === "gemini") return provider;
+  if (
+    provider === "openai" ||
+    provider === "gemini" ||
+    provider === "qwen" ||
+    provider === "deepseek"
+  ) {
+    return provider;
+  }
   return "openai";
 }
 
-/** Pick first available provider in order. */
+/** Fallback order when preferred provider is unavailable. Qwen and deepseek participate. */
+const FALLBACK_ORDER: Array<keyof AvailableProviders> = [
+  "openai",
+  "qwen",
+  "deepseek",
+  "claude",
+  "gemini",
+];
+
+/** Pick first available provider: preferred first, then fallback order. */
 function fallbackProvider(
   preferred: ProviderId,
-  available: Record<"openai" | "claude" | "gemini", boolean>
+  available: AvailableProviders
 ): ProviderId | null {
-  const map: Record<ProviderId, keyof typeof available> = {
+  const map: Record<ProviderId, keyof AvailableProviders> = {
     openai: "openai",
     anthropic: "claude",
     gemini: "gemini",
+    qwen: "qwen",
+    deepseek: "deepseek",
   };
-  if (available[map[preferred]]) return preferred;
-  if (available.openai) return "openai";
-  if (available.claude) return "anthropic";
-  if (available.gemini) return "gemini";
+  const key = map[preferred];
+  if (key && available[key]) return preferred;
+
+  for (const k of FALLBACK_ORDER) {
+    if (!available[k]) continue;
+    if (k === "openai") return "openai";
+    if (k === "claude") return "anthropic";
+    if (k === "gemini") return "gemini";
+    if (k === "qwen") return "qwen";
+    if (k === "deepseek") return "deepseek";
+  }
   return null;
 }
 
@@ -104,7 +149,7 @@ export async function routeAndCall(
   } = options;
 
   const available = getAvailableProviders();
-  const preferred = resolveProvider(provider, taskHint);
+  const preferred = resolveProvider(provider, taskHint, outputLanguage);
   const chosen = fallbackProvider(preferred, available);
 
   console.info("AI provider selected:", chosen ?? "none");
@@ -112,7 +157,7 @@ export async function routeAndCall(
 
   if (!chosen) {
     throw new Error(
-      "No AI provider available. Add at least one of OPENAI_API_KEY, ANTHROPIC_API_KEY, or GOOGLE_API_KEY to .env.local or Vercel Environment Variables."
+      "No AI provider available. Add at least one of OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, DASHSCOPE_API_KEY, or DEEPSEEK_API_KEY to .env.local or Vercel Environment Variables."
     );
   }
 
@@ -132,6 +177,16 @@ export async function routeAndCall(
   if (chosen === "gemini") {
     const reply = await callGemini(payload);
     if (reply !== null) return { reply, provider: "gemini" };
+  }
+
+  if (chosen === "qwen") {
+    const reply = await callQwen(payload);
+    if (reply !== null) return { reply, provider: "qwen" };
+  }
+
+  if (chosen === "deepseek") {
+    const reply = await callDeepSeek(payload);
+    if (reply !== null) return { reply, provider: "deepseek" };
   }
 
   throw new Error("Provider unavailable. Check your API keys and try again.");

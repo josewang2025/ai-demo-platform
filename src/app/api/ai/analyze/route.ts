@@ -5,7 +5,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 export type AnalyzeRequestBody = {
   input: string;
-  provider?: "auto" | "openai" | "claude" | "gemini";
+  provider?: "auto" | "openai" | "claude" | "gemini" | "qwen" | "deepseek" | "anthropic";
   responseMode?: "fast" | "deep" | "research";
   outputLanguage?: "en" | "zh";
   reportStyle?: "concise" | "executive" | "detailed";
@@ -18,6 +18,8 @@ const PROVIDER_LABEL: Record<string, string> = {
   openai: "openai",
   anthropic: "claude",
   gemini: "gemini",
+  qwen: "qwen",
+  deepseek: "deepseek",
 };
 
 function buildDefaultSystemContent(datasetSummary?: string): string {
@@ -55,15 +57,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const provider = requestedProvider ?? getDefaultModelProvider();
+    const provider =
+      requestedProvider ?? getDefaultModelProvider();
     const systemContent =
       systemPromptOverride ?? buildDefaultSystemContent(datasetSummary);
     const maxTokens = responseMode === "research" || systemPromptOverride ? 1024 : 500;
 
+    const routeProvider =
+      provider === "anthropic" ? "claude" : provider;
+
     const { reply, provider: chosenProvider } = await routeAndCall({
       systemContent,
       userMessage: input,
-      provider: provider === "anthropic" ? "claude" : provider,
+      provider: routeProvider as "auto" | "openai" | "claude" | "gemini" | "qwen" | "deepseek",
       taskHint: (taskHint as TaskHint) ?? "default",
       outputLanguage,
       maxTokens,

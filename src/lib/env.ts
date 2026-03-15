@@ -75,6 +75,8 @@ export function validateEnv(): void {
   if (!getOptionalEnv("GOOGLE_API_KEY") && !getOptionalEnv("GEMINI_API_KEY")) {
     missing.push("GOOGLE_API_KEY or GEMINI_API_KEY");
   }
+  if (!getOptionalEnv("DASHSCOPE_API_KEY")) missing.push("DASHSCOPE_API_KEY (Qwen)");
+  if (!getOptionalEnv("DEEPSEEK_API_KEY")) missing.push("DEEPSEEK_API_KEY");
   if (missing.length > 0) {
     console.warn(
       "[env] Missing optional API keys. Add them to .env.local or Vercel Environment Variables for full provider support:",

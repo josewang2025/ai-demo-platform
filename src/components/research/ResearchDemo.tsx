@@ -2,14 +2,13 @@
 
 import { useState, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-
-type Provider = "auto" | "openai" | "anthropic" | "gemini";
+import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
 
 export function ResearchDemo({
   modelProvider = "auto",
   outputLanguage = "en",
 }: {
-  modelProvider?: Provider;
+  modelProvider?: ModelProvider;
   outputLanguage?: "en" | "zh";
 }) {
   const { t } = useLanguage();
@@ -23,13 +22,13 @@ export function ResearchDemo({
     setLoading(true);
     setReport(null);
     try {
-      const provider = modelProvider === "auto" ? "openai" : modelProvider;
+      const providerForApi = getResolvedProviderForApi(modelProvider ?? "auto");
       const res = await fetch("/api/ai/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           input: `Research this topic in ${depth} depth and provide a structured report: ${topic}`,
-          provider,
+          provider: providerForApi,
           outputLanguage,
           taskHint: "research",
         }),
@@ -38,17 +37,17 @@ export function ResearchDemo({
       const message = data.success && data.reply
         ? data.reply
         : data.error === "rate_limit_exceeded"
-          ? "Too many requests. Please try again in a minute."
+          ? t("errors.rateLimit")
           : data.error === "provider_unavailable"
-            ? "AI provider unavailable. Add API keys in Environment Variables."
-            : data.reply ?? "Could not generate report.";
+            ? t("errors.providerUnavailable")
+            : data.reply ?? t("research.couldNotGenerate");
       setReport(message);
     } catch {
-      setReport("Something went wrong. Try again.");
+      setReport(t("errors.generic"));
     } finally {
       setLoading(false);
     }
-  }, [topic, depth, modelProvider, outputLanguage, loading]);
+  }, [topic, depth, modelProvider, outputLanguage, loading, t]);
 
   return (
     <>

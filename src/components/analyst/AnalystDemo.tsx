@@ -6,6 +6,7 @@ import { SAMPLE_ORDERS, type OrderRow } from "@/components/ecommerce/sampleOrder
 import { computeDashboard, buildDatasetSummary } from "@/components/ecommerce/dashboardUtils";
 import { MetricCard } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
 
 const CARD_CLASS = "card";
 
@@ -58,26 +59,20 @@ function parseCsvToOrders(csvText: string): OrderRow[] {
 
 type ChatMessage = { id: number | string; role: "user" | "assistant"; content: string };
 
-const INITIAL_MESSAGE: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  content: "Ask a question about your data. I'll answer from the loaded dataset.",
-};
-
-type Provider = "auto" | "openai" | "anthropic" | "gemini";
-
 export function AnalystDemo({
   modelProvider = "auto",
   outputLanguage = "en",
 }: {
-  modelProvider?: Provider;
+  modelProvider?: ModelProvider;
   outputLanguage?: "en" | "zh";
 }) {
   const { t } = useLanguage();
   const [orders, setOrders] = useState<OrderRow[] | null>(() => SAMPLE_ORDERS);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { id: "welcome", role: "assistant", content: "" },
+  ]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -118,14 +113,14 @@ export function AnalystDemo({
       setMessages((prev) => [...prev, { id: `user-${Date.now()}`, role: "user", content: trimmed }]);
       setChatInput("");
       setChatLoading(true);
-      const provider = modelProvider === "auto" ? "openai" : modelProvider;
+      const providerForApi = getResolvedProviderForApi(modelProvider ?? "auto");
       try {
         const res = await fetch("/api/ai/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             input: trimmed,
-            provider,
+            provider: providerForApi,
             outputLanguage,
             ...(datasetSummary ? { datasetSummary } : {}),
           }),
@@ -134,10 +129,10 @@ export function AnalystDemo({
         const message = data.success && data.reply
           ? data.reply
           : data.error === "rate_limit_exceeded"
-            ? "Too many requests. Please try again in a minute."
+            ? t("errors.rateLimit")
             : data.error === "provider_unavailable"
-              ? "AI provider unavailable. Add API keys in Environment Variables."
-              : data.reply ?? "Could not generate a response.";
+              ? t("errors.providerUnavailable")
+              : data.reply ?? t("analyst.couldNotGenerate");
         setMessages((prev) => [
           ...prev,
           { id: `a-${Date.now()}`, role: "assistant", content: message },
@@ -145,19 +140,19 @@ export function AnalystDemo({
       } catch {
         setMessages((prev) => [
           ...prev,
-          { id: `a-${Date.now()}`, role: "assistant", content: "Something went wrong. Try again." },
+          { id: `a-${Date.now()}`, role: "assistant", content: t("errors.generic") },
         ]);
       } finally {
         setChatLoading(false);
       }
     },
-    [chatInput, chatLoading, datasetSummary, modelProvider, outputLanguage]
+    [chatInput, chatLoading, datasetSummary, modelProvider, outputLanguage, t]
   );
 
   const suggestedPrompts = [
-    "Summarize the main trends in this dataset.",
-    "What are the top KPIs I should focus on?",
-    "Suggest three actionable next steps.",
+    t("analyst.suggested1"),
+    t("analyst.suggested2"),
+    t("analyst.suggested3"),
   ];
 
   return (
@@ -283,12 +278,12 @@ export function AnalystDemo({
                     : "self-end max-w-[85%] rounded-xl bg-gray-900 px-4 py-3 text-sm text-white"
                 }
               >
-                {m.content}
+                {m.id === "welcome" ? t("analyst.welcomeMessage") : m.content}
               </div>
             ))}
             {chatLoading && (
               <div className="self-start rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
-                Thinking…
+                {t("common.thinking")}
               </div>
             )}
           </div>

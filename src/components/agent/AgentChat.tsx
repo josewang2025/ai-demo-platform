@@ -1,35 +1,25 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { ChatMessage } from "@/components/ui";
-
-const EXAMPLE_PROMPTS = [
-  "What’s your return and refund policy?",
-  "How do I track my order?",
-  "I have a billing question.",
-];
-
-const INITIAL_MESSAGE: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  content:
-    "I’m your AI support assistant. Ask about returns, order tracking, billing, or other common questions. Try a prompt below or type your own. In production, I connect to your systems for accurate, up-to-date answers.",
-};
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export type ChatLanguage = "en" | "zh";
 export type ChatProvider = "openai" | "anthropic" | "gemini";
 
-const PROVIDER_LABELS: Record<ChatProvider, string> = {
-  openai: "GPT",
-  anthropic: "Claude",
-  gemini: "Gemini",
-};
-
 export function AgentChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
+  const { t } = useLanguage();
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { id: "welcome", role: "assistant", content: "" },
+  ]);
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState<ChatLanguage>("en");
   const [provider, setProvider] = useState<ChatProvider>("openai");
+
+  const suggestedPrompts = useMemo(
+    () => [t("agent.prompt1"), t("agent.prompt2"), t("agent.prompt3")],
+    [t]
+  );
 
   const handleSend = useCallback(async (content: string) => {
     const userMsg: ChatMessage = {
@@ -51,10 +41,10 @@ export function AgentChat() {
       const reply = data.success && data.reply
         ? data.reply
         : data.error === "rate_limit_exceeded"
-          ? "Too many requests. Please try again in a minute."
+          ? t("errors.rateLimit")
           : data.error === "provider_unavailable"
-            ? "AI provider unavailable. Add API keys in Environment Variables."
-            : data.reply ?? "I'm not sure how to answer that. Try rephrasing or ask something else.";
+            ? t("errors.providerUnavailable")
+            : data.reply ?? t("agent.notSure");
       setMessages((prev) => [
         ...prev,
         { id: `assistant-${Date.now()}`, role: "assistant", content: reply },
@@ -65,39 +55,28 @@ export function AgentChat() {
         {
           id: `assistant-${Date.now()}`,
           role: "assistant",
-          content:
-            "In production, I’d answer from your knowledge base. Connect your API for live support.",
+          content: t("agent.errorFallback"),
         },
       ]);
     } finally {
       setIsLoading(false);
     }
-  }, [language, provider]);
+  }, [language, provider, t]);
 
   return (
     <AgentChatUI
       messages={messages}
       onSend={handleSend}
-      suggestedPrompts={EXAMPLE_PROMPTS}
+      suggestedPrompts={suggestedPrompts}
       isLoading={isLoading}
       language={language}
       onLanguageChange={setLanguage}
       provider={provider}
       onProviderChange={setProvider}
+      t={t}
     />
   );
 }
-
-const CHAT_LANGUAGE_OPTIONS: { value: ChatLanguage; label: string }[] = [
-  { value: "en", label: "English" },
-  { value: "zh", label: "简体中文" },
-];
-
-const CHAT_PROVIDER_OPTIONS: { value: ChatProvider; label: string }[] = [
-  { value: "openai", label: "GPT" },
-  { value: "anthropic", label: "Claude" },
-  { value: "gemini", label: "Gemini" },
-];
 
 type AgentChatUIProps = {
   messages: ChatMessage[];
@@ -108,6 +87,7 @@ type AgentChatUIProps = {
   onLanguageChange: (lang: ChatLanguage) => void;
   provider: ChatProvider;
   onProviderChange: (p: ChatProvider) => void;
+  t: (key: string) => string;
 };
 
 function AgentChatUI({
@@ -119,8 +99,20 @@ function AgentChatUI({
   onLanguageChange,
   provider,
   onProviderChange,
+  t,
 }: AgentChatUIProps) {
   const [input, setInput] = useState("");
+
+  const languageOptions = [
+    { value: "en" as const, label: t("advanced.outputEn") },
+    { value: "zh" as const, label: t("advanced.outputZh") },
+  ];
+  const providerOptions = [
+    { value: "openai" as ChatProvider, label: t("advanced.modelOpenAI") },
+    { value: "anthropic" as ChatProvider, label: t("advanced.modelClaude") },
+    { value: "gemini" as ChatProvider, label: t("advanced.modelGemini") },
+  ];
+  const providerLabel = providerOptions.find((o) => o.value === provider)?.label ?? provider;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -132,9 +124,9 @@ function AgentChatUI({
 
   return (
     <div className="card">
-      <h2 className="text-lg font-medium text-gray-900">Chat with the agent</h2>
+      <h2 className="text-lg font-medium text-gray-900">{t("agent.title")}</h2>
       <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-        Ask in plain language. Try a prompt below or type your own. In production, responses come from your systems.
+        {t("agent.welcomeMessage")}
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
@@ -161,14 +153,14 @@ function AgentChatUI({
                   : "max-w-[90%] self-end rounded-xl bg-gray-900 px-4 py-3 text-sm text-white"
               }
             >
-              {m.content}
+              {m.id === "welcome" ? t("agent.welcomeMessage") : m.content}
             </div>
           ))}
           {isLoading && (
             <div className="max-w-[90%] self-start rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
               <span className="inline-flex items-center gap-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" aria-hidden />
-                Responding with {PROVIDER_LABELS[provider]}…
+                {t("common.respondingWith")} {providerLabel}…
               </span>
             </div>
           )}
@@ -177,9 +169,9 @@ function AgentChatUI({
 
       <div className="mt-6 flex flex-wrap items-center gap-6">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-500">Model</span>
-          <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5" role="group" aria-label="Model">
-            {CHAT_PROVIDER_OPTIONS.map((opt) => (
+          <span className="text-sm font-medium text-gray-500">{t("agent.providerLabel")}</span>
+          <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5" role="group" aria-label={t("agent.providerLabel")}>
+            {providerOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
@@ -196,9 +188,9 @@ function AgentChatUI({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-500">Language</span>
-          <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5" role="group" aria-label="Response language">
-            {CHAT_LANGUAGE_OPTIONS.map((opt) => (
+          <span className="text-sm font-medium text-gray-500">{t("agent.languageLabel")}</span>
+          <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5" role="group" aria-label={t("agent.languageLabel")}>
+            {languageOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
@@ -220,7 +212,7 @@ function AgentChatUI({
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. What’s your return policy? How do I track my order?"
+          placeholder={t("agent.placeholder")}
           disabled={isLoading}
           className="min-h-[44px] flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:opacity-60"
         />
@@ -229,7 +221,7 @@ function AgentChatUI({
           disabled={isLoading || !input.trim()}
           className="btn-primary min-h-[44px] px-5 disabled:opacity-60"
         >
-          Send
+          {t("common.send")}
         </button>
       </form>
     </div>
