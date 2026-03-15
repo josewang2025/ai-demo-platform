@@ -1,0 +1,124 @@
+{
+  "nav": {
+    "brand": "AI Solutions Demo Hub",
+    "exploreDemos": "Explore Demos",
+    "backTo": "Back to AI Solutions Demo Hub",
+    "langEn": "EN",
+    "langZh": "中"
+  },
+  "hero": {
+    "title": "AI Solutions Demo Hub",
+    "subtitle": "Purpose-built demos for analytics, ecommerce, and research workflows. Test real business scenarios powered by multi-model AI systems.",
+    "ctaExplore": "Explore Demos",
+    "ctaHowItWorks": "See How It Works"
+  },
+  "home": {
+    "supportMessage": "The right model for the right task — routed automatically for business use cases."
+  },
+  "demos": {
+    "sectionTitle": "Product demos",
+    "sectionDescription": "Click into any demo to see what it does and try it with sample data. No sign-up required.",
+    "dataAnalyst": {
+      "title": "AI Data Analyst",
+      "description": "Turn raw CSV data into trends, KPI snapshots, and actionable business insights.",
+      "cta": "Open Demo"
+    },
+    "ecommerce": {
+      "title": "AI Ecommerce Analyst",
+      "description": "Analyze store performance, product trends, and revenue signals with AI-generated recommendations.",
+      "cta": "Open Demo"
+    },
+    "researchAgent": {
+      "title": "AI Research Agent",
+      "description": "Synthesize complex topics into structured findings and decision-ready reports.",
+      "cta": "Open Demo"
+    }
+  },
+  "howItWorks": {
+    "title": "How it works",
+    "description": "From your data to business insights in three steps.",
+    "step1Title": "Upload Data",
+    "step1Desc": "Bring in your CSV, ecommerce export, or research topic.",
+    "step2Title": "AI Analysis",
+    "step2Desc": "Multi-model AI processes and analyzes your inputs.",
+    "step3Title": "Business Insights",
+    "step3Desc": "Get summaries, trends, and recommended actions."
+  },
+  "footer": {
+    "title": "Powered by multi-model AI",
+    "description": "This platform dynamically routes tasks to the most suitable AI models (OpenAI, Claude, Gemini) depending on the workflow."
+  },
+  "advanced": {
+    "title": "Advanced Settings",
+    "responseMode": "Response Mode",
+    "responseModeFast": "Fast",
+    "responseModeDeep": "Deep",
+    "responseModeResearch": "Research-powered",
+    "modelProvider": "Model Provider",
+    "modelAuto": "Auto Router",
+    "modelOpenAI": "OpenAI",
+    "modelClaude": "Claude",
+    "modelGemini": "Gemini",
+    "outputLanguage": "Output Language",
+    "outputEn": "English",
+    "outputZh": "简体中文",
+    "reportStyle": "Report Style",
+    "reportConcise": "Concise",
+    "reportExecutive": "Executive",
+    "reportDetailed": "Detailed"
+  },
+  "common": {
+    "openDemo": "Open Demo",
+    "send": "Send",
+    "clear": "Clear",
+    "chooseFile": "Choose file",
+    "downloadTemplate": "Download CSV Template",
+    "useSampleData": "Use Sample Dataset",
+    "downloadSample": "Download Sample Dataset",
+    "resetToSample": "Reset to sample data",
+    "yourData": "Your data",
+    "usingSampleData": "Using sample data",
+    "loaded": "Loaded",
+    "rows": "rows",
+    "examplePrompts": "Example prompts",
+    "respondingWith": "Responding with"
+  },
+  "analyst": {
+    "title": "AI Data Analyst",
+    "subtitle": "Upload a CSV or use sample data. Get an executive summary, KPI snapshot, trend analysis, and suggested actions.",
+    "uploadLabel": "Upload your data",
+    "uploadHint": "CSV with columns: date, order_id, product, category, price, quantity, revenue, customer, country, channel.",
+    "execSummary": "Executive Summary",
+    "kpiSnapshot": "KPI Snapshot",
+    "trendAnalysis": "Trend Analysis",
+    "suggestedActions": "Suggested Actions",
+    "askQuestion": "Ask a question about your data…"
+  },
+  "ecommerce": {
+    "title": "AI Ecommerce Analyst",
+    "subtitle": "See revenue and product performance at a glance, then ask questions in plain language. Upload your data or use sample data.",
+    "focusSales": "Sales",
+    "focusProducts": "Products",
+    "focusCampaigns": "Campaigns",
+    "focusCustomers": "Customers",
+    "businessOverview": "Business Overview",
+    "productPerformance": "Product Performance",
+    "revenueSignals": "Revenue Signals",
+    "recommendedActions": "Recommended Next Actions",
+    "askPlaceholder": "e.g. What's driving revenue? Which products should we promote?"
+  },
+  "research": {
+    "title": "AI Research Agent",
+    "subtitle": "Enter a topic and depth. Get a topic summary, key findings, comparison view, and a final report.",
+    "topicLabel": "Research topic",
+    "topicPlaceholder": "Enter a topic to research…",
+    "depthLabel": "Research depth",
+    "depthQuick": "Quick",
+    "depthStandard": "Standard",
+    "depthDeep": "Deep",
+    "topicSummary": "Topic Summary",
+    "keyFindings": "Key Findings",
+    "comparisonView": "Comparison View",
+    "finalReport": "Final Report"
+  }
+}

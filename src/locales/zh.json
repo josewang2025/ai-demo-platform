@@ -1,0 +1,124 @@
+{
+  "nav": {
+    "brand": "AI 解决方案演示中心",
+    "exploreDemos": "浏览演示",
+    "backTo": "返回 AI 解决方案演示中心",
+    "langEn": "EN",
+    "langZh": "中"
+  },
+  "hero": {
+    "title": "AI 解决方案演示中心",
+    "subtitle": "面向分析、电商与研究场景的演示。在真实业务场景中体验多模型 AI 系统。",
+    "ctaExplore": "浏览演示",
+    "ctaHowItWorks": "了解流程"
+  },
+  "home": {
+    "supportMessage": "为每个任务自动选择最合适的模型，助力业务场景。"
+  },
+  "demos": {
+    "sectionTitle": "产品演示",
+    "sectionDescription": "点击任意演示即可体验，支持示例数据，无需注册。",
+    "dataAnalyst": {
+      "title": "AI 数据分析师",
+      "description": "将原始 CSV 转为趋势、KPI 快照与可执行的业务洞察。",
+      "cta": "打开演示"
+    },
+    "ecommerce": {
+      "title": "AI 电商分析师",
+      "description": "分析店铺表现、商品趋势与收入信号，获取 AI 生成的建议。",
+      "cta": "打开演示"
+    },
+    "researchAgent": {
+      "title": "AI 研究助手",
+      "description": "将复杂主题综合为结构化结论与可用于决策的报告。",
+      "cta": "打开演示"
+    }
+  },
+  "howItWorks": {
+    "title": "如何运作",
+    "description": "从数据到业务洞察，三步完成。",
+    "step1Title": "上传数据",
+    "step1Desc": "上传 CSV、电商导出或输入研究主题。",
+    "step2Title": "AI 分析",
+    "step2Desc": "多模型 AI 处理并分析您的输入。",
+    "step3Title": "业务洞察",
+    "step3Desc": "获得摘要、趋势与推荐行动。"
+  },
+  "footer": {
+    "title": "多模型 AI 驱动",
+    "description": "本平台根据工作流动态选择最合适的 AI 模型（OpenAI、Claude、Gemini）。"
+  },
+  "advanced": {
+    "title": "高级设置",
+    "responseMode": "响应模式",
+    "responseModeFast": "快速",
+    "responseModeDeep": "深度",
+    "responseModeResearch": "研究模式",
+    "modelProvider": "模型提供商",
+    "modelAuto": "自动路由",
+    "modelOpenAI": "OpenAI",
+    "modelClaude": "Claude",
+    "modelGemini": "Gemini",
+    "outputLanguage": "输出语言",
+    "outputEn": "English",
+    "outputZh": "简体中文",
+    "reportStyle": "报告风格",
+    "reportConcise": "简洁",
+    "reportExecutive": "高管摘要",
+    "reportDetailed": "详细"
+  },
+  "common": {
+    "openDemo": "打开演示",
+    "send": "发送",
+    "clear": "清空",
+    "chooseFile": "选择文件",
+    "downloadTemplate": "下载 CSV 模板",
+    "useSampleData": "使用示例数据",
+    "downloadSample": "下载示例数据集",
+    "resetToSample": "恢复为示例数据",
+    "yourData": "您的数据",
+    "usingSampleData": "使用示例数据",
+    "loaded": "已加载",
+    "rows": "行",
+    "examplePrompts": "示例问题",
+    "respondingWith": "正在使用"
+  },
+  "analyst": {
+    "title": "AI 数据分析师",
+    "subtitle": "上传 CSV 或使用示例数据，获取高管摘要、KPI 快照、趋势分析与建议行动。",
+    "uploadLabel": "上传数据",
+    "uploadHint": "CSV 列：date, order_id, product, category, price, quantity, revenue, customer, country, channel。",
+    "execSummary": "高管摘要",
+    "kpiSnapshot": "KPI 快照",
+    "trendAnalysis": "趋势分析",
+    "suggestedActions": "建议行动",
+    "askQuestion": "就您的数据提问…"
+  },
+  "ecommerce": {
+    "title": "AI 电商分析师",
+    "subtitle": "一览收入与商品表现，用自然语言提问。支持上传数据或使用示例数据。",
+    "focusSales": "销售",
+    "focusProducts": "商品",
+    "focusCampaigns": "活动",
+    "focusCustomers": "客户",
+    "businessOverview": "业务概览",
+    "productPerformance": "商品表现",
+    "revenueSignals": "收入信号",
+    "recommendedActions": "推荐下一步",
+    "askPlaceholder": "例如：收入驱动因素？应主推哪些商品？"
+  },
+  "research": {
+    "title": "AI 研究助手",
+    "subtitle": "输入主题与深度，获得主题摘要、关键发现、对比视图与最终报告。",
+    "topicLabel": "研究主题",
+    "topicPlaceholder": "输入要研究的主题…",
+    "depthLabel": "研究深度",
+    "depthQuick": "快速",
+    "depthStandard": "标准",
+    "depthDeep": "深度",
+    "topicSummary": "主题摘要",
+    "keyFindings": "关键发现",
+    "comparisonView": "对比视图",
+    "finalReport": "最终报告"
+  }
+}
