@@ -188,6 +188,11 @@
   "errors": {
     "rateLimit": "请求过于频繁，请稍后再试。",
     "providerUnavailable": "AI 服务暂不可用，请在环境变量中配置 API 密钥。",
+    "providerUnavailableQwen": "千问当前不可用。请检查 DASHSCOPE_API_KEY 是否已在环境变量中配置，并确认已重新部署。",
+    "providerUnavailableDeepSeek": "DeepSeek 当前不可用。请检查 DEEPSEEK_API_KEY 是否已在环境变量中配置，并确认已重新部署。",
+    "providerUnavailableOpenAI": "OpenAI 当前不可用。请检查 OPENAI_API_KEY 是否已在环境变量中配置，并确认已重新部署。",
+    "providerUnavailableClaude": "Claude 当前不可用。请检查 ANTHROPIC_API_KEY 是否已在环境变量中配置，并确认已重新部署。",
+    "providerUnavailableGemini": "Gemini 当前不可用。请检查 GOOGLE_API_KEY 或 GEMINI_API_KEY 是否已在环境变量中配置，并确认已重新部署。",
     "invalidRequest": "请求无效，请重试。",
     "generic": "出错了，请重试。"
   }

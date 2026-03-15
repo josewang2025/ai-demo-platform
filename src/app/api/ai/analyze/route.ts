@@ -85,9 +85,12 @@ export async function POST(request: Request) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("AI analyze error:", message);
 
-    const providerMatch = message.match(/Provider unavailable \((\w+)\)/);
-    if (providerMatch) {
-      console.error("[ANALYZE] provider_failed code=provider_unavailable provider=" + providerMatch[1]);
+    const explicitMatch = message.match(/^PROVIDER_UNAVAILABLE:(\w+)$/);
+    const afterCallMatch = message.match(/Provider unavailable \((\w+)\)/);
+    const providerId = explicitMatch?.[1] ?? afterCallMatch?.[1];
+
+    if (providerId) {
+      console.error("[ANALYZE] provider_failed code=provider_unavailable provider=" + providerId);
     }
 
     if (message.includes("No AI provider available") || message.includes("is not set")) {
@@ -97,9 +100,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (message.includes("Provider unavailable")) {
+    if (message.startsWith("PROVIDER_UNAVAILABLE:") || message.includes("Provider unavailable")) {
+      const providerForClient = providerId === "anthropic" ? "claude" : providerId ?? "unknown";
       return NextResponse.json(
-        { success: false, error: "provider_unavailable" },
+        { success: false, error: "provider_unavailable", provider: providerForClient },
         { status: 503 }
       );
     }

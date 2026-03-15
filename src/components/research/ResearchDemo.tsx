@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
+import { getProviderUnavailableErrorKey } from "@/lib/providerError";
 
 export function ResearchDemo({
   modelProvider = "auto",
@@ -33,13 +34,13 @@ export function ResearchDemo({
           taskHint: "research",
         }),
       });
-      const data = (await res.json()) as { success?: boolean; reply?: string; error?: string };
+      const data = (await res.json()) as { success?: boolean; reply?: string; error?: string; provider?: string };
       const message = data.success && data.reply
         ? data.reply
         : data.error === "rate_limit_exceeded"
           ? t("errors.rateLimit")
           : data.error === "provider_unavailable"
-            ? t("errors.providerUnavailable")
+            ? t(getProviderUnavailableErrorKey(data.provider))
             : data.reply ?? t("research.couldNotGenerate");
       setReport(message);
     } catch {

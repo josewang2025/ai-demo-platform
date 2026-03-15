@@ -11,6 +11,7 @@ import { ECOMMERCE_CONSULTANT_PROMPT } from "./ecommerceConsultantPrompt";
 import { MetricCard } from "@/components/ui";
 import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getProviderUnavailableErrorKey } from "@/lib/providerError";
 
 const CARD_CLASS =
   "rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md";
@@ -219,13 +220,13 @@ export function EcommerceDemo({
             taskHint: "ecommerce",
           }),
         });
-        const body = (await res.json()) as { success?: boolean; reply?: string; error?: string };
+        const body = (await res.json()) as { success?: boolean; reply?: string; error?: string; provider?: string };
         const reply = body.success && body.reply
           ? body.reply
           : body.error === "rate_limit_exceeded"
             ? t("errors.rateLimit")
             : body.error === "provider_unavailable"
-              ? t("errors.providerUnavailable")
+              ? t(getProviderUnavailableErrorKey(body.provider))
               : body.reply ?? t("errors.generic");
         setMessages((prev) => [
           ...prev,
@@ -274,13 +275,13 @@ export function EcommerceDemo({
             taskHint: "ecommerce",
           }),
         });
-        const body = (await res.json()) as { success?: boolean; reply?: string; error?: string };
+        const body = (await res.json()) as { success?: boolean; reply?: string; error?: string; provider?: string };
         const reply = body.success && body.reply
           ? body.reply
           : body.error === "rate_limit_exceeded"
             ? t("errors.rateLimit")
             : body.error === "provider_unavailable"
-              ? t("errors.providerUnavailable")
+              ? t(getProviderUnavailableErrorKey(body.provider))
               : body.reply ?? t("errors.generic");
         setMessages((prev) => [
           ...prev,

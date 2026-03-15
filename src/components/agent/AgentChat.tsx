@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import type { ChatMessage } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getProviderUnavailableErrorKey } from "@/lib/providerError";
 
 export type ChatLanguage = "en" | "zh";
 export type ChatProvider = "openai" | "anthropic" | "gemini";
@@ -37,14 +38,14 @@ export function AgentChat() {
         body: JSON.stringify({ input: content, provider, outputLanguage: language }),
       });
 
-      const data = (await res.json()) as { success?: boolean; reply?: string; error?: string };
-      const reply = data.success && data.reply
-        ? data.reply
-        : data.error === "rate_limit_exceeded"
-          ? t("errors.rateLimit")
-          : data.error === "provider_unavailable"
-            ? t("errors.providerUnavailable")
-            : data.reply ?? t("agent.notSure");
+        const data = (await res.json()) as { success?: boolean; reply?: string; error?: string; provider?: string };
+        const reply = data.success && data.reply
+          ? data.reply
+          : data.error === "rate_limit_exceeded"
+            ? t("errors.rateLimit")
+            : data.error === "provider_unavailable"
+              ? t(getProviderUnavailableErrorKey(data.provider))
+              : data.reply ?? t("agent.notSure");
       setMessages((prev) => [
         ...prev,
         { id: `assistant-${Date.now()}`, role: "assistant", content: reply },

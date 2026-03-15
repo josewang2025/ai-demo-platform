@@ -188,6 +188,11 @@
   "errors": {
     "rateLimit": "Too many requests. Please try again in a minute.",
     "providerUnavailable": "AI provider unavailable. Add API keys in Environment Variables.",
+    "providerUnavailableQwen": "Qwen is currently unavailable. Please verify DASHSCOPE_API_KEY is configured in Environment Variables and redeploy the app.",
+    "providerUnavailableDeepSeek": "DeepSeek is currently unavailable. Please verify DEEPSEEK_API_KEY is configured in Environment Variables and redeploy the app.",
+    "providerUnavailableOpenAI": "OpenAI is currently unavailable. Please verify OPENAI_API_KEY is configured in Environment Variables and redeploy the app.",
+    "providerUnavailableClaude": "Claude is currently unavailable. Please verify ANTHROPIC_API_KEY is configured in Environment Variables and redeploy the app.",
+    "providerUnavailableGemini": "Gemini is currently unavailable. Please verify GOOGLE_API_KEY or GEMINI_API_KEY is configured in Environment Variables and redeploy the app.",
     "invalidRequest": "Invalid request. Please try again.",
     "generic": "Something went wrong. Try again."
   }

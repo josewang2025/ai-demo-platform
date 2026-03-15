@@ -7,6 +7,7 @@ import { computeDashboard, buildDatasetSummary } from "@/components/ecommerce/da
 import { MetricCard } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
+import { getProviderUnavailableErrorKey } from "@/lib/providerError";
 
 const CARD_CLASS = "card";
 
@@ -125,13 +126,13 @@ export function AnalystDemo({
             ...(datasetSummary ? { datasetSummary } : {}),
           }),
         });
-        const data = (await res.json()) as { success?: boolean; reply?: string; error?: string };
+        const data = (await res.json()) as { success?: boolean; reply?: string; error?: string; provider?: string };
         const message = data.success && data.reply
           ? data.reply
           : data.error === "rate_limit_exceeded"
             ? t("errors.rateLimit")
             : data.error === "provider_unavailable"
-              ? t("errors.providerUnavailable")
+              ? t(getProviderUnavailableErrorKey(data.provider))
               : data.reply ?? t("analyst.couldNotGenerate");
         setMessages((prev) => [
           ...prev,
