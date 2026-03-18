@@ -65,7 +65,7 @@ export function ChatPanel({
         </div>
       )}
 
-      <div className="mt-6 min-h-[200px] rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+      <div className="mt-6 min-h-[200px] rounded-2xl border border-slate-100 bg-slate-50/80 p-4" role="log" aria-live="polite">
         <div className="flex h-full min-h-[200px] flex-col gap-3 overflow-y-auto">
           {messages.map((m) => (
             <div
@@ -80,7 +80,7 @@ export function ChatPanel({
             </div>
           ))}
           {isLoading && (
-            <div className="self-start rounded-2xl bg-white px-4 py-2.5 text-sm text-slate-500 shadow-sm">
+            <div className="self-start rounded-2xl bg-white px-4 py-2.5 text-sm text-slate-500 shadow-sm" aria-busy="true">
               <span className="inline-block animate-pulse">Thinking...</span>
             </div>
           )}

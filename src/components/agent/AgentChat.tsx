@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import type { ChatMessage } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { getProviderUnavailableErrorKey } from "@/lib/providerError";
+import { resolveApiReply, type AnalyzeApiResponse } from "@/lib/apiResponse";
 
 export type ChatLanguage = "en" | "zh";
 export type ChatProvider = "openai" | "anthropic" | "gemini";
@@ -38,14 +38,8 @@ export function AgentChat() {
         body: JSON.stringify({ input: content, provider, outputLanguage: language }),
       });
 
-        const data = (await res.json()) as { success?: boolean; reply?: string; error?: string; provider?: string };
-        const reply = data.success && data.reply
-          ? data.reply
-          : data.error === "rate_limit_exceeded"
-            ? t("errors.rateLimit")
-            : data.error === "provider_unavailable"
-              ? t(getProviderUnavailableErrorKey(data.provider))
-              : data.reply ?? t("agent.notSure");
+        const data = (await res.json()) as AnalyzeApiResponse;
+        const reply = resolveApiReply(data, t, "agent.notSure");
       setMessages((prev) => [
         ...prev,
         { id: `assistant-${Date.now()}`, role: "assistant", content: reply },
@@ -143,7 +137,7 @@ function AgentChatUI({
         ))}
       </div>
 
-      <div className="mt-6 min-h-[260px] rounded-xl border border-gray-200 bg-gray-50 p-5 shadow-sm">
+      <div className="mt-6 min-h-[260px] rounded-xl border border-gray-200 bg-gray-50 p-5 shadow-sm" role="log" aria-live="polite">
         <div className="flex min-h-[240px] flex-col gap-3 overflow-y-auto">
           {messages.map((m) => (
             <div
@@ -160,7 +154,7 @@ function AgentChatUI({
           {isLoading && (
             <div className="max-w-[90%] self-start rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
               <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" aria-hidden />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" aria-hidden="true" />
                 {t("common.respondingWith")} {providerLabel}…
               </span>
             </div>

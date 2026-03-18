@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useMemo, useCallback } from "react";
-import Papa from "papaparse";
+import { parseCsv } from "@/lib/csvParser";
 import { SHOPIFY_SAMPLE_DATA, type ShopifyRow } from "./shopifySampleData";
 import {
   computeShopifyDashboard,
@@ -11,60 +11,28 @@ import { ECOMMERCE_CONSULTANT_PROMPT } from "./ecommerceConsultantPrompt";
 import { MetricCard } from "@/components/ui";
 import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { getProviderUnavailableErrorKey } from "@/lib/providerError";
+import { resolveApiReply, type AnalyzeApiResponse } from "@/lib/apiResponse";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 const CARD_CLASS =
   "rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md";
 
 const SHOPIFY_COLUMNS = [
-  "date",
-  "product_name",
-  "category",
-  "orders",
-  "units_sold",
-  "revenue",
-  "ad_spend",
-  "conversion_rate",
-  "inventory",
+  "date", "product_name", "category", "orders", "units_sold",
+  "revenue", "ad_spend", "conversion_rate", "inventory",
 ];
 
 function parseShopifyCsv(csvText: string): ShopifyRow[] {
-  const result = Papa.parse<Record<string, string>>(csvText, {
-    header: true,
-    skipEmptyLines: true,
-  });
-  if (result.errors.length > 0) {
-    throw new Error(result.errors.map((e) => e.message).join("; "));
-  }
-  const rows = result.data;
-  if (rows.length === 0) return [];
-
-  const norm = (s: string) =>
-    s.trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
-  const keys = Object.keys(rows[0]).map((k) => norm(k));
-  const expected = SHOPIFY_COLUMNS.map((c) => norm(c));
-  const missing = expected.filter((c) => !keys.includes(c));
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing columns: ${missing.join(", ")}. Use template: /ecommerce_template.csv`
-    );
-  }
-
-  const get = (row: Record<string, string>, col: string) => {
-    const key = Object.keys(row).find((k) => norm(k) === norm(col));
-    return (key ? row[key] : "") ?? "";
-  };
-
-  return rows.map((row) => ({
-    date: get(row, "date").trim(),
-    product_name: get(row, "product_name").trim(),
-    category: get(row, "category").trim(),
-    orders: parseInt(get(row, "orders") || "0", 10) || 0,
-    units_sold: parseInt(get(row, "units_sold") || "0", 10) || 0,
-    revenue: parseFloat(get(row, "revenue") || "0") || 0,
-    ad_spend: parseFloat(get(row, "ad_spend") || "0") || 0,
-    conversion_rate: parseFloat(get(row, "conversion_rate") || "0") || 0,
-    inventory: parseInt(get(row, "inventory") || "0", 10) || 0,
+  return parseCsv<ShopifyRow>(csvText, SHOPIFY_COLUMNS, "/ecommerce_template.csv", (get) => ({
+    date: get("date").trim(),
+    product_name: get("product_name").trim(),
+    category: get("category").trim(),
+    orders: parseInt(get("orders") || "0", 10) || 0,
+    units_sold: parseInt(get("units_sold") || "0", 10) || 0,
+    revenue: parseFloat(get("revenue") || "0") || 0,
+    ad_spend: parseFloat(get("ad_spend") || "0") || 0,
+    conversion_rate: parseFloat(get("conversion_rate") || "0") || 0,
+    inventory: parseInt(get("inventory") || "0", 10) || 0,
   }));
 }
 
@@ -94,8 +62,6 @@ export function EcommerceDemo({
   reportStyle = "concise",
 }: EcommerceDemoProps) {
   const { t } = useLanguage();
-  const inputSectionRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [data, setData] = useState<ShopifyRow[] | null>(() => SHOPIFY_SAMPLE_DATA);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -108,6 +74,20 @@ export function EcommerceDemo({
     { id: "welcome", role: "assistant", content: "" },
   ]);
   const [chatLoading, setChatLoading] = useState(false);
+
+  const { fileInputRef, sectionRef: inputSectionRef, handleFileChange, handleDrop, handleDragOver, triggerUpload } =
+    useFileUpload<ShopifyRow>({
+      parse: parseShopifyCsv,
+      onData: (rows, fileName) => {
+        setData(rows);
+        setUploadedFileName(fileName);
+        setParseError(null);
+      },
+      onError: (msg) => {
+        setParseError(msg);
+        setUploadedFileName(null);
+      },
+    });
 
   const exampleQuestions = [
     t("ecommerce.exampleQ1"),
@@ -134,129 +114,7 @@ export function EcommerceDemo({
     setParseError(null);
   }, []);
 
-  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback((e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      setParseError(null);
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const parsed = parseShopifyCsv(String(reader.result));
-          setData(parsed);
-          setUploadedFileName(file.name);
-        } catch (err) {
-          setParseError(
-            err instanceof Error ? err.message : "Failed to parse CSV"
-          );
-          setUploadedFileName(null);
-        }
-      };
-      reader.readAsText(file, "UTF-8");
-      e.target.value = "";
-    }, []);
-
-  const handleDrop: React.DragEventHandler<HTMLDivElement> = useCallback(
-    (e) => {
-      e.preventDefault();
-      const file = e.dataTransfer.files?.[0];
-      if (!file) return;
-      setParseError(null);
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const parsed = parseShopifyCsv(String(reader.result));
-          setData(parsed);
-          setUploadedFileName(file.name);
-        } catch (err) {
-          setParseError(
-            err instanceof Error ? err.message : "Failed to parse CSV"
-          );
-          setUploadedFileName(null);
-        }
-      };
-      reader.readAsText(file, "UTF-8");
-    },
-    []
-  );
-
-  const handleDragOver: React.DragEventHandler<HTMLDivElement> = (e) =>
-    e.preventDefault();
-
-  const scrollToInput = useCallback(() => {
-    inputSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
-  const triggerUpload = useCallback(() => {
-    scrollToInput();
-    setTimeout(() => fileInputRef.current?.click(), 400);
-  }, [scrollToInput]);
-
   const providerForApi = getResolvedProviderForApi(modelProvider ?? "auto");
-
-  const handleSubmitChat = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      const trimmed = chatInput.trim();
-      if (!trimmed || chatLoading) return;
-
-      const userMsg: ChatMessage = {
-        id: `user-${Date.now()}`,
-        role: "user",
-        content: trimmed,
-      };
-      setMessages((prev) => [...prev, userMsg]);
-      setChatInput("");
-      setChatLoading(true);
-
-      const systemPrompt =
-        ECOMMERCE_CONSULTANT_PROMPT +
-        "\n\nDataset summary:\n" +
-        datasetSummary;
-
-      try {
-        const res = await fetch("/api/ai/analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            input: trimmed,
-            provider: providerForApi,
-            outputLanguage,
-            responseMode,
-            reportStyle,
-            systemPromptOverride: systemPrompt,
-            taskHint: "ecommerce",
-          }),
-        });
-        const body = (await res.json()) as { success?: boolean; reply?: string; error?: string; provider?: string };
-        const reply = body.success && body.reply
-          ? body.reply
-          : body.error === "rate_limit_exceeded"
-            ? t("errors.rateLimit")
-            : body.error === "analysis_service_unavailable"
-              ? t("errors.analysisServiceUnavailable")
-              : body.error === "provider_unavailable"
-                ? t(getProviderUnavailableErrorKey(body.provider))
-                : body.reply ?? t("errors.generic");
-        setMessages((prev) => [
-          ...prev,
-          { id: `assistant-${Date.now()}`, role: "assistant", content: reply },
-        ]);
-      } catch {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `assistant-${Date.now()}`,
-            role: "assistant",
-            content: t("errors.generic"),
-          },
-        ]);
-      } finally {
-        setChatLoading(false);
-      }
-    },
-    [chatInput, chatLoading, datasetSummary, outputLanguage, providerForApi, responseMode, reportStyle, t]
-  );
 
   const sendMessage = useCallback(
     async (messageText: string) => {
@@ -287,16 +145,8 @@ export function EcommerceDemo({
             taskHint: "ecommerce",
           }),
         });
-        const body = (await res.json()) as { success?: boolean; reply?: string; error?: string; provider?: string };
-        const reply = body.success && body.reply
-          ? body.reply
-          : body.error === "rate_limit_exceeded"
-            ? t("errors.rateLimit")
-            : body.error === "analysis_service_unavailable"
-              ? t("errors.analysisServiceUnavailable")
-              : body.error === "provider_unavailable"
-                ? t(getProviderUnavailableErrorKey(body.provider))
-                : body.reply ?? t("errors.generic");
+        const body = (await res.json()) as AnalyzeApiResponse;
+        const reply = resolveApiReply(body, t);
         setMessages((prev) => [
           ...prev,
           { id: `assistant-${Date.now()}`, role: "assistant", content: reply },
@@ -315,6 +165,14 @@ export function EcommerceDemo({
       }
     },
     [chatLoading, datasetSummary, outputLanguage, providerForApi, responseMode, reportStyle, t]
+  );
+
+  const handleSubmitChat = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      sendMessage(chatInput.trim());
+    },
+    [chatInput, sendMessage]
   );
 
   const handleGenerateFullReport = useCallback(() => {
@@ -548,7 +406,7 @@ export function EcommerceDemo({
           </div>
         </div>
 
-        <div className="mt-6 min-h-[280px] rounded-xl border border-gray-200 bg-gray-50/50 p-5 shadow-inner">
+        <div className="mt-6 min-h-[280px] rounded-xl border border-gray-200 bg-gray-50/50 p-5 shadow-inner" role="log" aria-live="polite">
           <div className="max-h-[420px] overflow-y-auto">
             {messages.map((m) => (
               <div
@@ -571,8 +429,8 @@ export function EcommerceDemo({
               </div>
             ))}
             {chatLoading && (
-              <div className="flex items-center gap-2 py-4 text-gray-500">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" />
+              <div className="flex items-center gap-2 py-4 text-gray-500" aria-busy="true">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" aria-hidden="true" />
                 {t("ecommerce.generating")}
               </div>
             )}

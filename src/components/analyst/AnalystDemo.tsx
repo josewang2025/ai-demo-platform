@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState, useMemo, useCallback } from "react";
-import Papa from "papaparse";
+import { parseCsv } from "@/lib/csvParser";
 import { SAMPLE_ANALYST_DATA, type AnalystRow } from "@/components/analyst/analystSampleData";
+import { useFileUpload } from "@/hooks/useFileUpload";
 import {
   computeAnalystDashboard,
   buildAnalystDatasetSummary,
@@ -10,47 +11,23 @@ import {
 import { MetricCard, RevenueTrendChart, HorizontalBarChart } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getResolvedProviderForApi, type ModelProvider } from "@/components/demo";
-import { getProviderUnavailableErrorKey } from "@/lib/providerError";
+import { resolveApiReply, type AnalyzeApiResponse } from "@/lib/apiResponse";
 
 const CARD_CLASS = "rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md";
 
 const EXPECTED_COLUMNS = [
-  "date",
-  "region",
-  "segment",
-  "revenue",
-  "orders",
-  "profit",
-  "customer_count",
+  "date", "region", "segment", "revenue", "orders", "profit", "customer_count",
 ];
 
 function parseCsvToAnalystRows(csvText: string): AnalystRow[] {
-  const result = Papa.parse<Record<string, string>>(csvText, {
-    header: true,
-    skipEmptyLines: true,
-  });
-  if (result.errors.length > 0) throw new Error(result.errors.map((e) => e.message).join("; "));
-  const rows = result.data;
-  if (rows.length === 0) return [];
-  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "_");
-  const keys = Object.keys(rows[0]).map((k) => norm(k));
-  const normalizedExpected = EXPECTED_COLUMNS.map((c) => norm(c));
-  const missing = normalizedExpected.filter((c) => !keys.includes(c));
-  if (missing.length > 0) {
-    throw new Error(`Missing columns: ${missing.join(", ")}. Use template: /analyst_template.csv`);
-  }
-  const get = (row: Record<string, string>, col: string) => {
-    const key = Object.keys(row).find((k) => norm(k) === norm(col));
-    return (key ? row[key] : "") ?? "";
-  };
-  return rows.map((row) => ({
-    date: get(row, "date").trim(),
-    region: get(row, "region").trim(),
-    segment: get(row, "segment").trim(),
-    revenue: parseFloat(get(row, "revenue") || "0") || 0,
-    orders: parseInt(get(row, "orders") || "0", 10) || 0,
-    profit: parseFloat(get(row, "profit") || "0") || 0,
-    customer_count: parseInt(get(row, "customer_count") || "0", 10) || 0,
+  return parseCsv<AnalystRow>(csvText, EXPECTED_COLUMNS, "/analyst_template.csv", (get) => ({
+    date: get("date").trim(),
+    region: get("region").trim(),
+    segment: get("segment").trim(),
+    revenue: parseFloat(get("revenue") || "0") || 0,
+    orders: parseInt(get("orders") || "0", 10) || 0,
+    profit: parseFloat(get("profit") || "0") || 0,
+    customer_count: parseInt(get("customer_count") || "0", 10) || 0,
   }));
 }
 
@@ -84,9 +61,20 @@ export function AnalystDemo({
   ]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const inputSectionRef = useRef<HTMLDivElement>(null);
   const firstSuggestionRef = useRef(t(SUGGESTED_KEYS[0]));
+
+  const { fileInputRef, sectionRef: inputSectionRef, handleFileChange, handleDrop, handleDragOver, triggerUpload } =
+    useFileUpload<AnalystRow>({
+      parse: parseCsvToAnalystRows,
+      onData: (rows, fileName) => {
+        setData(rows);
+        setUploadedFileName(fileName);
+        setParseError(null);
+      },
+      onError: (msg) => {
+        setParseError(msg);
+      },
+    });
 
   const suggestedPrompts = SUGGESTED_KEYS.map((k) => t(k));
   firstSuggestionRef.current = suggestedPrompts[0];
@@ -106,47 +94,6 @@ export function AnalystDemo({
     setData(SAMPLE_ANALYST_DATA);
     setUploadedFileName(null);
     setParseError(null);
-  }, []);
-
-  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = useCallback((e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setParseError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = parseCsvToAnalystRows(String(reader.result));
-        setData(parsed);
-        setUploadedFileName(file.name);
-      } catch (err) {
-        setParseError(err instanceof Error ? err.message : "Failed to parse CSV");
-      }
-    };
-    reader.readAsText(file, "UTF-8");
-    e.target.value = "";
-  }, []);
-
-  const handleDrop: React.DragEventHandler<HTMLDivElement> = useCallback((e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    setParseError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = parseCsvToAnalystRows(String(reader.result));
-        setData(parsed);
-        setUploadedFileName(file.name);
-      } catch (err) {
-        setParseError(err instanceof Error ? err.message : "Failed to parse");
-      }
-    };
-    reader.readAsText(file, "UTF-8");
-  }, []);
-
-  const triggerUpload = useCallback(() => {
-    inputSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-    setTimeout(() => fileInputRef.current?.click(), 400);
   }, []);
 
   const handleSubmitChat = useCallback(
@@ -171,21 +118,8 @@ export function AnalystDemo({
             ...(datasetSummary ? { datasetSummary } : {}),
           }),
         });
-        const dataRes = (await res.json()) as {
-          success?: boolean;
-          reply?: string;
-          error?: string;
-          provider?: string;
-        };
-        const message = dataRes.success && dataRes.reply
-          ? dataRes.reply
-          : dataRes.error === "rate_limit_exceeded"
-            ? t("errors.rateLimit")
-            : dataRes.error === "analysis_service_unavailable"
-              ? t("errors.analysisServiceUnavailable")
-              : dataRes.error === "provider_unavailable"
-                ? t(getProviderUnavailableErrorKey(dataRes.provider))
-                : dataRes.reply ?? t("analyst.couldNotGenerate");
+        const dataRes = (await res.json()) as AnalyzeApiResponse;
+        const message = resolveApiReply(dataRes, t, "analyst.couldNotGenerate");
         setMessages((prev) => [
           ...prev,
           { id: `a-${Date.now()}`, role: "assistant", content: message },
@@ -252,7 +186,7 @@ export function AnalystDemo({
         <div
           className="mt-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/80 px-6 py-10 text-center"
           onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
+          onDragOver={handleDragOver}
         >
           <p className="text-sm font-medium text-gray-900">{t("common.dragDropCsv")}</p>
           <p className="mt-1.5 text-sm text-gray-500">{t("analyst.uploadHint")}</p>
@@ -385,7 +319,7 @@ export function AnalystDemo({
           ))}
         </div>
         <p className="mt-1.5 text-xs text-gray-400">{t("research.tabHint")}</p>
-        <div className="mt-6 min-h-[200px] rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="mt-6 min-h-[200px] rounded-xl border border-gray-200 bg-gray-50 p-4" role="log" aria-live="polite">
           <div className="flex flex-col gap-3 overflow-y-auto max-h-64">
             {messages.map((m) => (
               <div
@@ -400,7 +334,7 @@ export function AnalystDemo({
               </div>
             ))}
             {chatLoading && (
-              <div className="self-start rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
+              <div className="self-start rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500" aria-busy="true">
                 {t("common.thinking")}
               </div>
             )}

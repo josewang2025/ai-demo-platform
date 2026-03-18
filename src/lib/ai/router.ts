@@ -178,7 +178,6 @@ export async function routeAndCall(
   } = options;
 
   const available = getAvailableProviders();
-  console.log("[ROUTER] qwen available:", !!process.env.DASHSCOPE_API_KEY);
 
   const preferred = resolveProvider(provider, taskHint, outputLanguage);
   let chosen: ProviderId | null;
@@ -187,21 +186,15 @@ export async function routeAndCall(
     chosen = fallbackProvider(preferred, available);
     if (preferred === "qwen" && !available.qwen && available.deepseek && chosen !== "qwen") {
       chosen = "deepseek";
-      console.log("[ROUTER] qwen unavailable → fallback deepseek");
     }
-    console.log("[ROUTER] auto mode: preferred=", preferred, "chosen=", chosen ?? "none", "fallbackOrder=", FALLBACK_ORDER);
   } else {
     const explicitKey: keyof AvailableProviders =
       preferred === "anthropic" ? "claude" : preferred;
     if (!available[explicitKey]) {
-      console.error("[ROUTER] provider_unavailable provider=" + preferred);
       throw new Error("PROVIDER_UNAVAILABLE:" + preferred);
     }
     chosen = preferred;
   }
-
-  console.info("AI provider selected:", chosen ?? "none");
-  console.info("Task hint:", taskHint);
 
   if (!chosen) {
     throw new Error(
@@ -227,11 +220,9 @@ export async function routeAndCall(
       try {
         const reply = await tryProvider(p);
         if (reply !== null) {
-          console.info("[ROUTER] auto: succeeded with", p);
           return { reply, provider: p };
         }
-      } catch (err) {
-        console.warn("[ROUTER] auto: provider failed", p, err instanceof Error ? err.message : String(err));
+      } catch {
       }
     }
     throw new Error("ANALYSIS_SERVICE_UNAVAILABLE");
