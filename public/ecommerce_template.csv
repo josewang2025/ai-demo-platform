@@ -1,7 +1,0 @@
-date,product_name,category,orders,units_sold,revenue,ad_spend,conversion_rate,inventory
-2025-01-01,Wireless Earbuds,Electronics,48,58,4250,510,3.8,83
-2025-01-01,Phone Case,Accessories,62,62,1798,144,2.5,81
-2025-01-01,Portable Charger,Electronics,52,52,2340,187,2.4,83
-2025-01-01,Desk Lamp,Home,17,17,595,149,1.2,45
-2025-01-01,Water Bottle,Lifestyle,68,136,1496,120,2.8,12
-2025-01-01,Laptop Stand,Office,25,25,1200,96,2.1,80

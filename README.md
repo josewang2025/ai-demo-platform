@@ -20,41 +20,6 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Environment Setup
-
-### Local development
-
-1. Create `.env.local` in the project root.
-2. Add:
-
-   ```
-   OPENAI_API_KEY=your_key
-   ANTHROPIC_API_KEY=your_key
-   GOOGLE_API_KEY=your_key
-   ```
-
-3. Run:
-
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-### Vercel deployment
-
-1. Push the project to GitHub.
-2. Import the repo into Vercel.
-3. Go to **Project Settings → Environment Variables**.
-4. Add:
-
-   - `OPENAI_API_KEY`
-   - `ANTHROPIC_API_KEY`
-   - `GOOGLE_API_KEY`
-
-5. Redeploy the project.
-
-**Security warning:** Never use `NEXT_PUBLIC_` for API keys.
-
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
