@@ -1,0 +1,11 @@
+date,region,segment,revenue,orders,profit,customer_count
+2024-01-01,North America,Enterprise,10200,98,1224,96
+2024-01-01,North America,SMB,8400,72,1008,70
+2024-01-01,North America,Consumer,6200,58,744,56
+2024-01-01,EMEA,Enterprise,9800,85,1176,83
+2024-01-01,EMEA,SMB,7600,68,912,66
+2024-01-02,North America,Enterprise,10450,100,1254,98
+2024-01-02,APAC,Consumer,5900,55,708,53
+2024-01-03,EMEA,SMB,7800,70,936,68
+2024-01-04,North America,Enterprise,10800,102,1296,100
+2024-01-05,APAC,Enterprise,9200,82,1104,80

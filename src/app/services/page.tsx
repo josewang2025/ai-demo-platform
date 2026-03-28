@@ -9,7 +9,9 @@ export default function ServicesPage() {
         {services.map((service) => (
           <article key={service.title} className="rounded-xl border border-white/10 bg-white/5 p-5">
             <h2 className="text-lg font-medium text-white">{service.title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">{service.description}</p>
+            <p className="mt-1 text-xs text-slate-500">{service.titleEn}</p>
+            <p className="mt-3 text-sm leading-relaxed text-slate-300">{service.description}</p>
+            <p className="mt-3 border-l-2 border-cyan-500/40 pl-3 text-sm text-cyan-100/90">{service.outcome}</p>
           </article>
         ))}
       </div>
