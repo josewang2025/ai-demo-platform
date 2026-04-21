@@ -2,9 +2,9 @@
 
 import { PageContainer, SiteHeader } from "@/components/layout";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ServicesPageContent } from "@/components/services/ServicesPageContent";
+import { CaseStudiesPageContent } from "@/components/caseStudies/CaseStudiesPageContent";
 
-export default function ServicesPage() {
+export default function CaseStudiesPage() {
   const { locale } = useLanguage();
   return (
     <main className="min-h-screen page-bg text-gray-900">
@@ -12,15 +12,15 @@ export default function ServicesPage() {
         <SiteHeader variant="back" />
         <header className="mt-10">
           <h1 className="text-3xl font-semibold text-gray-900">
-            {locale === "zh" ? "AI 咨询与交付服务" : "AI Consulting & Delivery Services"}
+            {locale === "zh" ? "案例与 Demo" : "Case Studies & Demos"}
           </h1>
           <p className="mt-3 max-w-3xl text-base text-gray-600 leading-relaxed">
             {locale === "zh"
-              ? "从 AI 原型到可运维系统，围绕业务目标交付可执行方案与复盘机制。"
-              : "From AI prototype to production-ready systems, with business-outcome driven execution."}
+              ? "结构化展示业务问题、方案路径、技术栈与可见成果。"
+              : "Structured case studies with problem framing, delivery path, and visible outcomes."}
           </p>
         </header>
-        <ServicesPageContent />
+        <CaseStudiesPageContent />
       </PageContainer>
     </main>
   );

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import { AppProviders } from "@/components/providers/AppProviders";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "josephjwang.com | AI Product Builder",
-  description: "构建真正可用的 AI 产品 - Joseph Wang 个人品牌站",
+  title: "Joseph Wang | AI Product Builder",
+  description:
+    "AI Product & Data consulting portfolio with demo workflows, resume, services, and business case studies.",
 };
 
 export default function RootLayout({
@@ -26,18 +25,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="zh-CN"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
-    >
-      <body className="min-h-full bg-slate-950 text-slate-100">
-        <AppProviders>
-          <div className="flex min-h-full flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-        </AppProviders>
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   );
