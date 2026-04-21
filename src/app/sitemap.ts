@@ -9,12 +9,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/services",
     "/case-studies",
     "/contact",
-    "/dashboard",
+    "/about",
+    "/demos",
     "/analyst",
     "/ecommerce",
     "/research",
-    "/workflows",
-    "/agent",
   ];
 
   const now = new Date();

@@ -1,10 +1,25 @@
+"use client";
+
+import { PageContainer, PageHero, SiteHeader } from "@/components/layout";
+import { useLanguage } from "@/contexts/LanguageContext";
+
 export default function AboutPage() {
+  const { locale } = useLanguage();
+  const zh = locale === "zh";
+
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-      <h1 className="text-3xl font-semibold text-white">关于我</h1>
-      <p className="mt-4 max-w-3xl text-slate-300">
-        我是 Joseph Wang，长期聚焦 AI 产品化、增长数据科学与跨中英市场协作，帮助团队把复杂能力转化为清晰、可交付的产品价值。
-      </p>
-    </section>
+    <main className="min-h-screen page-bg text-gray-900">
+      <PageContainer>
+        <SiteHeader variant="back" />
+        <PageHero
+          title={zh ? "关于我" : "About"}
+          description={
+            zh
+              ? "我是 Joseph Wang，长期聚焦 AI 产品化、增长数据科学与跨中英市场协作，帮助团队把复杂能力转化为清晰、可交付的产品价值。"
+              : "I focus on AI product delivery, growth analytics, and cross-market collaboration to turn complex capabilities into practical outcomes."
+          }
+        />
+      </PageContainer>
+    </main>
   );
 }

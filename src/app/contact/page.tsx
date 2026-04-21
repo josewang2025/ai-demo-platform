@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PageContainer, SiteHeader } from "@/components/layout";
+import { PageContainer, PageHero, SiteHeader } from "@/components/layout";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function ContactPage() {
@@ -33,14 +33,14 @@ export default function ContactPage() {
     <main className="min-h-screen page-bg text-gray-900">
       <PageContainer size="narrow">
         <SiteHeader variant="back" />
-        <header className="mt-10">
-          <h1 className="text-3xl font-semibold text-gray-900">{zh ? "联系我" : "Contact"}</h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-gray-600">
-            {zh
+        <PageHero
+          title={zh ? "联系我" : "Contact"}
+          description={
+            zh
               ? "欢迎发送行业、团队阶段与期望时间线。我会在 1-2 个工作日内回复是否适合合作与建议的下一步。"
-              : "Share your industry, stage, and expected timeline. I usually respond in 1-2 business days with next-step recommendations."}
-          </p>
-        </header>
+              : "Share your industry, stage, and expected timeline. I usually respond in 1-2 business days with next-step recommendations."
+          }
+        />
 
         <section className="mt-10 card space-y-4">
           <p className="text-sm text-gray-700">

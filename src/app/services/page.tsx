@@ -1,6 +1,6 @@
 "use client";
 
-import { PageContainer, SiteHeader } from "@/components/layout";
+import { PageContainer, PageHero, SiteHeader } from "@/components/layout";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ServicesPageContent } from "@/components/services/ServicesPageContent";
 
@@ -10,16 +10,14 @@ export default function ServicesPage() {
     <main className="min-h-screen page-bg text-gray-900">
       <PageContainer>
         <SiteHeader variant="back" />
-        <header className="mt-10">
-          <h1 className="text-3xl font-semibold text-gray-900">
-            {locale === "zh" ? "AI 咨询与交付服务" : "AI Consulting & Delivery Services"}
-          </h1>
-          <p className="mt-3 max-w-3xl text-base text-gray-600 leading-relaxed">
-            {locale === "zh"
+        <PageHero
+          title={locale === "zh" ? "AI 咨询与交付服务" : "AI Consulting & Delivery Services"}
+          description={
+            locale === "zh"
               ? "从 AI 原型到可运维系统，围绕业务目标交付可执行方案与复盘机制。"
-              : "From AI prototype to production-ready systems, with business-outcome driven execution."}
-          </p>
-        </header>
+              : "From AI prototype to production-ready systems, with business-outcome driven execution."
+          }
+        />
         <ServicesPageContent />
       </PageContainer>
     </main>

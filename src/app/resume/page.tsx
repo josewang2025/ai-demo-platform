@@ -1,6 +1,6 @@
 "use client";
 
-import { PageContainer, SiteHeader } from "@/components/layout";
+import { PageContainer, PageHero, SiteHeader } from "@/components/layout";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useState } from "react";
 import { ResumePageContent } from "@/components/resume/ResumePageContent";
@@ -32,36 +32,21 @@ export default function ResumePage() {
     <main className="min-h-screen page-bg text-gray-900">
       <PageContainer>
         <SiteHeader variant="back" />
-        <header className="mt-10">
-          <h1 className="text-3xl font-semibold text-gray-900">
-            {copy.title}
-          </h1>
-          <p className="mt-3 max-w-3xl text-base text-gray-600 leading-relaxed">
-            {copy.subtitle}
-          </p>
-          <p className="mt-2 text-sm text-gray-500">
-            joseph@josephjwang.com · +86 134 8223 9970 · linkedin.com/in/josephwang-ds
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <a className="btn-primary py-2.5 px-4" href="/Joseph_Wang_Resume.pdf" download>
-              {copy.download}
-            </a>
-            <a className="btn-secondary py-2.5 px-4" href="mailto:joseph@josephjwang.com">
-              {copy.email}
-            </a>
-            <a
-              className="btn-secondary py-2.5 px-4"
-              href="https://linkedin.com/in/josephwang-ds"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {copy.linkedin}
-            </a>
-            <button type="button" className="btn-secondary py-2.5 px-4" onClick={copyContact}>
-              {copied ? (locale === "zh" ? "已复制" : "Copied") : locale === "zh" ? "复制联系方式" : "Copy Contact"}
-            </button>
-          </div>
-        </header>
+        <PageHero
+          title={copy.title}
+          description={copy.subtitle}
+          metaLine="joseph@josephjwang.com · +86 134 8223 9970 · linkedin.com/in/josephwang-ds"
+          actions={[
+            { label: copy.download, href: "/Joseph_Wang_Resume.pdf", variant: "primary", download: true },
+            { label: copy.email, href: "mailto:joseph@josephjwang.com", variant: "secondary" },
+            { label: copy.linkedin, href: "https://linkedin.com/in/josephwang-ds", variant: "secondary", external: true },
+          ]}
+        />
+        <div className="mt-3">
+          <button type="button" className="btn-secondary py-2.5 px-4" onClick={copyContact}>
+            {copied ? (locale === "zh" ? "已复制" : "Copied") : locale === "zh" ? "复制联系方式" : "Copy Contact"}
+          </button>
+        </div>
         <ResumePageContent />
       </PageContainer>
     </main>

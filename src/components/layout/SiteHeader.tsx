@@ -15,16 +15,14 @@ export function SiteHeader({ variant = "home" }: SiteHeaderProps) {
           { href: "/resume", label: "履历" },
           { href: "/services", label: "服务" },
           { href: "/case-studies", label: "案例" },
-          { href: "/dashboard", label: "总览" },
-          { href: "/analyst", label: "Demo" },
+          { href: "/demos", label: "Demo" },
           { href: "/contact", label: "联系" },
         ]
       : [
           { href: "/resume", label: "Resume" },
           { href: "/services", label: "Services" },
           { href: "/case-studies", label: "Case Studies" },
-          { href: "/dashboard", label: "Overview" },
-          { href: "/analyst", label: "Demos" },
+          { href: "/demos", label: "Demos" },
           { href: "/contact", label: "Contact" },
         ];
 
